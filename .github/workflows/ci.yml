@@ -31,16 +31,16 @@ jobs:
       - name: Install dependencies 🚀
         run: npm i --prefer-offline --no-audit --omit=optional
 
-      - name: Run linter(s) 💅
-        uses: wearerequired/lint-action@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          continue_on_error: false
-          git_name: github-actions[bot]
-          git_email: github-actions[bot]@users.noreply.github.com
-          auto_fix: false
-          prettier: true
-          prettier_extensions: js,cjs,ts,json
+      # - name: Run linter(s) 💅
+      #   uses: wearerequired/lint-action@v2
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     continue_on_error: false
+      #     git_name: github-actions[bot]
+      #     git_email: github-actions[bot]@users.noreply.github.com
+      #     auto_fix: false
+      #     prettier: true
+      #     prettier_extensions: js,cjs,ts,json
 
       - name: Run hadolint 🐳
         uses: hadolint/hadolint-action@v2.1.0
