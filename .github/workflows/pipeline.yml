@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Extract branch name 🕊
         id: get-branch
-        run: echo "::set-output name=current_branch::${GITHUB_REF##*/}"
+        run: echo "current_branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
   ci:
     name: 'CI'
     needs:
