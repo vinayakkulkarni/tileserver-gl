@@ -25,8 +25,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'package.json'
-          check-latest: true
-          cache: 'npm'
 
       - name: Install dependencies 🚀
         run: npm i --prefer-offline --no-audit --omit=optional
