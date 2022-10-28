@@ -30,7 +30,7 @@ const packageJson = JSON.parse(fs.readFileSync(__dirname + '/../package.json', '
 const isLight = packageJson.name.slice(-6) === '-light';
 const serve_rendered = (await import(`${!isLight ? `./serve_rendered.js` : `./serve_light.js`}`)).serve_rendered;
 
-export function server(opts) {
+function start(opts) {
   console.log('Starting server');
 
   const app = express().disable('x-powered-by');
@@ -502,7 +502,7 @@ export function server(opts) {
   };
 }
 
-export const exports = (opts) => {
+export function server(opts) {
   const running = start(opts);
 
   running.startupPromise.catch((err) => {
@@ -518,10 +518,6 @@ export const exports = (opts) => {
     console.log('Stopping server and reloading config');
 
     running.server.shutdown(() => {
-      for (const key in require.cache) {
-        delete require.cache[key];
-      }
-
       const restarted = start(opts);
       running.server = restarted.server;
       running.app = restarted.app;
