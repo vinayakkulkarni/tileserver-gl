@@ -79,6 +79,7 @@ export function server(opts) {
   paths.fonts = path.resolve(paths.root, paths.fonts || '');
   paths.sprites = path.resolve(paths.root, paths.sprites || '');
   paths.mbtiles = path.resolve(paths.root, paths.mbtiles || '');
+  paths.icons = path.resolve(paths.root, paths.icons || '');
 
   const startupPromises = [];
 
@@ -92,6 +93,36 @@ export function server(opts) {
   checkPath('fonts');
   checkPath('sprites');
   checkPath('mbtiles');
+  checkPath('icons');
+
+  /**
+ * Recursively get all files within a directory.
+ * Inspired by https://stackoverflow.com/a/45130990/10133863
+ * @param {String} directory Absolute path to a directory to get files from.
+ */
+  const getFiles = async (directory) => {
+    // Fetch all entries of the directory and attach type information
+    const dirEntries = await fs.promises.readdir(directory, { withFileTypes: true });
+
+    // Iterate through entries and return the relative file-path to the icon directory if it is not a directory
+    // otherwise initiate a recursive call
+    const files = await Promise.all(dirEntries.map((dirEntry) => {
+      const entryPath = path.resolve(directory, dirEntry.name);
+      return dirEntry.isDirectory() ?
+        getFiles(entryPath) : entryPath.replace(paths.icons + path.sep, "");
+    }));
+
+    // Flatten the list of files to a single array
+    return files.flat();
+  }
+
+  // Load all available icons into a settings object
+  startupPromises.push(new Promise(resolve => {
+    getFiles(paths.icons).then((files) => {
+      paths.availableIcons = files;
+      resolve();
+    });
+  }));
 
   if (options.dataDecorator) {
     try {

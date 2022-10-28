@@ -11,6 +11,7 @@ import pkg from 'canvas';
 import clone from 'clone';
 import Color from 'color';
 import express from 'express';
+import sanitize from "sanitize-filename";
 import SphericalMercator from '@mapbox/sphericalmercator';
 import mlgl from '@maplibre/maplibre-gl-native';
 import MBTiles from '@mapbox/mbtiles';
@@ -21,7 +22,7 @@ import {getFontsPbf, getTileUrls, fixTileJSONCenter} from './utils.js';
 const FLOAT_PATTERN = '[+-]?(?:\\d+|\\d+\.?\\d+)';
 const httpTester = /^(http(s)?:)?\/\//;
 
-const {createCanvas} = pkg;
+const {createCanvas, Image} = pkg;
 const mercator = new SphericalMercator();
 const getScale = (scale) => (scale || '@1x').slice(1, 2) | 0;
 
@@ -93,37 +94,385 @@ function createEmptyResponse(format, color, callback) {
   });
 }
 
-const extractPathFromQuery = (query, transformer) => {
-  const pathParts = (query.path || '').split('|');
-  const path = [];
-  for (const pair of pathParts) {
-    const pairParts = pair.split(',');
-    if (pairParts.length === 2) {
-      let pair;
-      if (query.latlng === '1' || query.latlng === 'true') {
-        pair = [+(pairParts[1]), +(pairParts[0])];
-      } else {
-        pair = [+(pairParts[0]), +(pairParts[1])];
-      }
-      if (transformer) {
-        pair = transformer(pair);
-      }
-      path.push(pair);
-    }
+/**
+ * Parses coordinate pair provided to pair of floats and ensures the resulting
+ * pair is a longitude/latitude combination depending on lnglat query parameter.
+ * @param {List} coordinatePair Coordinate pair.
+ * @param {Object} query Request query parameters.
+ */
+const parseCoordinatePair = (coordinates, query) => {
+  const firstCoordinate = parseFloat(coordinates[0]);
+  const secondCoordinate = parseFloat(coordinates[1]);
+
+  // Ensure provided coordinates could be parsed and abort if not
+  if (isNaN(firstCoordinate) || isNaN(secondCoordinate)) {
+    return null;
   }
-  return path;
+
+  // Check if coordinates have been provided as lat/lng pair instead of the
+  // ususal lng/lat pair and ensure resulting pair is lng/lat
+  if (query.latlng === '1' || query.latlng === 'true') {
+    return [secondCoordinate, firstCoordinate];
+  }
+
+  return [firstCoordinate, secondCoordinate];
 };
 
-const renderOverlay = (z, x, y, bearing, pitch, w, h, scale,
-    path, query) => {
+/**
+ * Parses a coordinate pair from query arguments and optionally transforms it.
+ * @param {List} coordinatePair Coordinate pair.
+ * @param {Object} query Request query parameters.
+ * @param {Function} transformer Optional transform function.
+ */
+const parseCoordinates = (coordinatePair, query, transformer) => {
+  const parsedCoordinates = parseCoordinatePair(coordinatePair, query);
+
+  // Transform coordinates
+  if (transformer) {
+    return transformer(parsedCoordinates);
+  }
+
+  return parsedCoordinates;
+};
+
+
+/**
+ * Parses paths provided via query into a list of path objects.
+ * @param {Object} query Request query parameters.
+ * @param {Function} transformer Optional transform function.
+ */
+const extractPathsFromQuery = (query, transformer) => {
+  // Return an empty list if no paths have been provided
+  if (!query.path) {
+    return [];
+  }
+
+  const paths = [];
+
+  // Check if multiple paths have been provided and mimic a list if it's a
+  // single path.
+  const providedPaths = Array.isArray(query.path) ? query.path : [query.path];
+
+  // Iterate through paths, parse and validate them
+  for (const provided_path of providedPaths) {
+    const currentPath = [];
+
+    // Extract coordinate-list from path
+    const pathParts = (provided_path || '').split('|');
+
+    // Iterate through coordinate-list, parse the coordinates and validate them
+    for (const pair of pathParts) {
+      // Extract coordinates from coordinate pair
+      const pairParts = pair.split(',');
+
+      // Ensure we have two coordinates
+      if (pairParts.length === 2) {
+        const pair = parseCoordinates(pairParts, query, transformer);
+
+        // Ensure coordinates could be parsed and skip them if not
+        if (pair === null) {
+          continue;
+        }
+
+        // Add the coordinate-pair to the current path if they are valid
+        currentPath.push(pair);
+      }
+    }
+
+    // Extend list of paths with current path if it contains coordinates
+    if (currentPath.length) {
+      paths.push(currentPath)
+    }
+
+  }
+  return paths;
+};
+
+/**
+ * Parses marker options provided via query and sets corresponding attributes
+ * on marker object.
+ * Options adhere to the following format
+ * [optionName]:[optionValue]
+ * @param {List[String]} optionsList List of option strings.
+ * @param {Object} marker Marker object to configure.
+ */
+const parseMarkerOptions = (optionsList, marker) => {
+  for (const options of optionsList) {
+    const optionParts = options.split(':');
+    // Ensure we got an option name and value
+    if (optionParts.length < 2) {
+      continue;
+    }
+
+    switch (optionParts[0]) {
+      // Scale factor to up- or downscale icon
+      case 'scale':
+        // Scale factors must not be negative
+        marker.scale = Math.abs(parseFloat(optionParts[1]))
+        break;
+      // Icon offset as positive or negative pixel value in the following
+      // format [offsetX],[offsetY] where [offsetY] is optional
+      case 'offset':
+        const providedOffset = optionParts[1].split(',');
+        // Set X-axis offset
+        marker.offsetX = parseFloat(providedOffset[0]);
+        // Check if an offset has been provided for Y-axis
+        if (providedOffset.length > 1) {
+          marker.offsetY = parseFloat(providedOffset[1]);
+        }
+        break;
+    }
+  }
+};
+
+/**
+ * Parses markers provided via query into a list of marker objects.
+ * @param {Object} query Request query parameters.
+ * @param {Object} options Configuration options.
+ * @param {Function} transformer Optional transform function.
+ */
+const extractMarkersFromQuery = (query, options, transformer) => {
+  // Return an empty list if no markers have been provided
+  if (!query.marker) {
+    return [];
+  }
+
+  const markers = [];
+
+  // Check if multiple markers have been provided and mimic a list if it's a
+  // single maker.
+  const providedMarkers = Array.isArray(query.marker) ?
+    query.marker : [query.marker];
+
+  // Iterate through provided markers which can have one of the following
+  // formats
+  // [location]|[pathToFileTelativeToConfiguredIconPath]
+  // [location]|[pathToFile...]|[option]|[option]|...
+  for (const providedMarker of providedMarkers) {
+    const markerParts = providedMarker.split('|');
+    // Ensure we got at least a location and an icon uri
+    if (markerParts.length < 2) {
+      continue;
+    }
+
+    const locationParts = markerParts[0].split(',');
+    // Ensure the locationParts contains two items
+    if (locationParts.length !== 2) {
+      continue;
+    }
+
+    let iconURI = markerParts[1];
+    // Check if icon is served via http otherwise marker icons are expected to
+    // be provided as filepaths relative to configured icon path
+    if (!(iconURI.startsWith('http://') || iconURI.startsWith('https://'))) {
+      // Sanitize URI with sanitize-filename
+      // https://www.npmjs.com/package/sanitize-filename#details
+      iconURI = sanitize(iconURI)
+
+      // If the selected icon is not part of available icons skip it
+      if (!options.paths.availableIcons.includes(iconURI)) {
+        continue;
+      }
+
+      iconURI = path.resolve(options.paths.icons, iconURI);
+
+    // When we encounter a remote icon check if the configuration explicitly allows them.
+    } else if (options.allowRemoteMarkerIcons !== true) {
+      continue;
+    }
+
+    // Ensure marker location could be parsed
+    const location = parseCoordinates(locationParts, query, transformer);
+    if (location === null) {
+      continue;
+    }
+
+    const marker = {};
+
+    marker.location = location;
+    marker.icon = iconURI;
+
+    // Check if options have been provided
+    if (markerParts.length > 2) {
+      parseMarkerOptions(markerParts.slice(2), marker);
+    }
+
+    // Add marker to list
+    markers.push(marker);
+
+  }
+  return markers;
+};
+
+/**
+ * Transforms coordinates to pixels.
+ * @param {List[Number]} ll Longitude/Latitude coordinate pair.
+ * @param {Number} zoom Map zoom level.
+ */
+const precisePx = (ll, zoom) => {
+  const px = mercator.px(ll, 20);
+  const scale = Math.pow(2, zoom - 20);
+  return [px[0] * scale, px[1] * scale];
+};
+
+/**
+ * Draws a marker in cavans context.
+ * @param {Object} ctx Canvas context object.
+ * @param {Object} marker Marker object parsed by extractMarkersFromQuery.
+ * @param {Number} z Map zoom level.
+ */
+const drawMarker = (ctx, marker, z) => {
+  return new Promise(resolve => {
+    const img = new Image();
+    const pixelCoords = precisePx(marker.location, z);
+
+    const getMarkerCoordinates = (imageWidth, imageHeight, scale) => {
+      // Images are placed with their top-left corner at the provided location
+      // within the canvas but we expect icons to be centered and above it.
+
+      // Substract half of the images width from the x-coordinate to center
+      // the image in relation to the provided location
+      let xCoordinate = pixelCoords[0] - imageWidth / 2;
+      // Substract the images height from the y-coordinate to place it above
+      // the provided location
+      let yCoordinate = pixelCoords[1] - imageHeight;
+
+      // Since image placement is dependent on the size offsets have to be
+      // scaled as well. Additionally offsets are provided as either positive or
+      // negative values so we always add them
+      if (marker.offsetX) {
+        xCoordinate = xCoordinate + (marker.offsetX * scale);
+      }
+      if (marker.offsetY) {
+        yCoordinate = yCoordinate + (marker.offsetY * scale);
+      }
+
+      return {
+        'x': xCoordinate,
+        'y': yCoordinate
+      };
+    };
+
+    const drawOnCanvas = () => {
+      // Check if the images should be resized before beeing drawn
+      const defaultScale = 1;
+      const scale = marker.scale ? marker.scale : defaultScale;
+
+      // Calculate scaled image sizes
+      const imageWidth = img.width * scale;
+      const imageHeight = img.height * scale;
+
+      // Pass the desired sizes to get correlating coordinates
+      const coords = getMarkerCoordinates(imageWidth, imageHeight, scale);
+
+      // Draw the image on canvas
+      if (scale != defaultScale) {
+        ctx.drawImage(img, coords.x, coords.y, imageWidth, imageHeight);
+      } else {
+        ctx.drawImage(img, coords.x, coords.y);
+      }
+      // Resolve the promise when image has been drawn
+      resolve();
+    };
+
+    img.onload = drawOnCanvas;
+    img.onerror = err => { throw err };
+    img.src = marker.icon;
+  });
+}
+
+/**
+ * Draws a list of markers onto a canvas.
+ * Wraps drawing of markers into list of promises and awaits them.
+ * It's required because images are expected to load asynchronous in canvas js
+ * even when provided from a local disk.
+ * @param {Object} ctx Canvas context object.
+ * @param {List[Object]} markers Marker objects parsed by extractMarkersFromQuery.
+ * @param {Number} z Map zoom level.
+ */
+const drawMarkers = async (ctx, markers, z) => {
+  const markerPromises = [];
+
+  for (const marker of markers) {
+    // Begin drawing marker
+    markerPromises.push(drawMarker(ctx, marker, z));
+  }
+
+  // Await marker drawings before continuing
+  await Promise.all(markerPromises);
+}
+
+/**
+ * Draws a list of coordinates onto a canvas and styles the resulting path.
+ * @param {Object} ctx Canvas context object.
+ * @param {List[Number]} path List of coordinates.
+ * @param {Object} query Request query parameters.
+ * @param {Number} z Map zoom level.
+ */
+const drawPath = (ctx, path, query, z) => {
   if (!path || path.length < 2) {
     return null;
   }
-  const precisePx = (ll, zoom) => {
-    const px = mercator.px(ll, 20);
-    const scale = Math.pow(2, zoom - 20);
-    return [px[0] * scale, px[1] * scale];
-  };
+
+  ctx.beginPath();
+
+  // Transform coordinates to pixel on canvas and draw lines between points
+  for (const pair of path) {
+    const px = precisePx(pair, z);
+    ctx.lineTo(px[0], px[1]);
+  }
+
+  // Check if first coordinate matches last coordinate
+  if (path[0][0] === path[path.length - 1][0] &&
+    path[0][1] === path[path.length - 1][1]) {
+    ctx.closePath();
+  }
+
+  // Optionally fill drawn shape with a rgba color from query
+  if (query.fill !== undefined) {
+    ctx.fillStyle = query.fill;
+    ctx.fill();
+  }
+
+  // Get line width from query and fall back to 1 if not provided
+  const lineWidth = query.width !== undefined ?
+    parseFloat(query.width) : 1;
+
+  // Ensure line width is valid
+  if (lineWidth > 0) {
+    // Get border width from query and fall back to 10% of line width
+    const borderWidth = query.borderwidth !== undefined ?
+      parseFloat(query.borderwidth) : lineWidth * 0.1;
+
+    // Set rendering style for the start and end points of the path
+    // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineCap
+    ctx.lineCap = query.linecap || 'butt';
+
+    // Set rendering style for overlapping segments of the path with differing directions
+    // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineJoin
+    ctx.lineJoin = query.linejoin || 'miter';
+
+    // In order to simulate a border we draw the path two times with the first
+    // beeing the wider border part.
+    if (query.border !== undefined && borderWidth > 0) {
+      // We need to double the desired border width and add it to the line width
+      // in order to get the desired border on each side of the line.
+      ctx.lineWidth = lineWidth + (borderWidth * 2);
+      // Set border style as rgba
+      ctx.strokeStyle = query.border;
+      ctx.stroke();
+    }
+
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = query.stroke || 'rgba(0,64,255,0.7)';
+    ctx.stroke();
+  }
+}
+
+const renderOverlay = async (z, x, y, bearing, pitch, w, h, scale, paths, markers, query) => {
+  if ((!paths || paths.length === 0) && (!markers || markers.length === 0)) {
+    return null;
+  }
 
   const center = precisePx([x, y], z);
 
@@ -147,24 +496,14 @@ const renderOverlay = (z, x, y, bearing, pitch, w, h, scale,
     // optimized path
     ctx.translate(-center[0] + w / 2, -center[1] + h / 2);
   }
-  const lineWidth = query.width !== undefined ?
-    parseFloat(query.width) : 1;
-  ctx.lineWidth = lineWidth;
-  ctx.strokeStyle = query.stroke || 'rgba(0,64,255,0.7)';
-  ctx.fillStyle = query.fill || 'rgba(255,255,255,0.4)';
-  ctx.beginPath();
-  for (const pair of path) {
-    const px = precisePx(pair, z);
-    ctx.lineTo(px[0], px[1]);
+
+  // Draw provided paths if any
+  for (const path of paths) {
+    drawPath(ctx, path, query, z);
   }
-  if (path[0][0] === path[path.length - 1][0] &&
-    path[0][1] === path[path.length - 1][1]) {
-    ctx.closePath();
-  }
-  ctx.fill();
-  if (lineWidth > 0) {
-    ctx.stroke();
-  }
+
+  // Await drawing of markers before rendering the canvas
+  await drawMarkers(ctx, markers, z);
 
   return canvas.toBuffer();
 };
@@ -396,7 +735,7 @@ export const serve_rendered = {
             FLOAT_PATTERN, FLOAT_PATTERN, FLOAT_PATTERN,
             FLOAT_PATTERN, FLOAT_PATTERN);
 
-      app.get(util.format(staticPattern, centerPattern), (req, res, next) => {
+      app.get(util.format(staticPattern, centerPattern), async (req, res, next) => {
         const item = repo[req.params.id];
         if (!item) {
           return res.sendStatus(404);
@@ -425,13 +764,14 @@ export const serve_rendered = {
           y = ll[1];
         }
 
-        const path = extractPathFromQuery(req.query, transformer);
-        const overlay = renderOverlay(z, x, y, bearing, pitch, w, h, scale, path, req.query);
+        const paths = extractPathsFromQuery(req.query, transformer);
+        const markers = extractMarkersFromQuery(req.query, options, transformer);
+        const overlay = await renderOverlay(z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query);
 
         return respondImage(item, z, x, y, bearing, pitch, w, h, scale, format, res, next, overlay, 'static');
       });
 
-      const serveBounds = (req, res, next) => {
+      const serveBounds = async (req, res, next) => {
         const item = repo[req.params.id];
         if (!item) {
           return res.sendStatus(404);
@@ -464,9 +804,9 @@ export const serve_rendered = {
         const bearing = 0;
         const pitch = 0;
 
-        const path = extractPathFromQuery(req.query, transformer);
-        const overlay = renderOverlay(z, x, y, bearing, pitch, w, h, scale, path, req.query);
-
+        const paths = extractPathsFromQuery(req.query, transformer);
+        const markers = extractMarkersFromQuery(req.query, options, transformer);
+        const overlay = await renderOverlay(z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query);
         return respondImage(item, z, x, y, bearing, pitch, w, h, scale, format, res, next, overlay, 'static');
       };
 
@@ -500,7 +840,7 @@ export const serve_rendered = {
 
       const autoPattern = 'auto';
 
-      app.get(util.format(staticPattern, autoPattern), (req, res, next) => {
+      app.get(util.format(staticPattern, autoPattern), async (req, res, next) => {
         const item = repo[req.params.id];
         if (!item) {
           return res.sendStatus(404);
@@ -516,13 +856,25 @@ export const serve_rendered = {
         const transformer = raw ?
           mercator.inverse.bind(mercator) : item.dataProjWGStoInternalWGS;
 
-        const path = extractPathFromQuery(req.query, transformer);
-        if (path.length < 2) {
-          return res.status(400).send('Invalid path');
+        const paths = extractPathsFromQuery(req.query, transformer);
+        const markers = extractMarkersFromQuery(req.query, options, transformer);
+
+        // Extract coordinates from markers
+        const markerCoordinates = [];
+        for (const marker of markers) {
+          markerCoordinates.push(marker.location);
+        }
+
+        // Create array with coordinates from markers and path
+        const coords = new Array().concat(paths.flat()).concat(markerCoordinates);
+
+        // Check if we have at least one coordinate to calculate a bounding box
+        if (coords.length < 1) {
+          return res.status(400).send('No coordinates provided');
         }
 
         const bbox = [Infinity, Infinity, -Infinity, -Infinity];
-        for (const pair of path) {
+        for (const pair of coords) {
           bbox[0] = Math.min(bbox[0], pair[0]);
           bbox[1] = Math.min(bbox[1], pair[1]);
           bbox[2] = Math.max(bbox[2], pair[0]);
@@ -534,11 +886,17 @@ export const serve_rendered = {
             [(bbox_[0] + bbox_[2]) / 2, (bbox_[1] + bbox_[3]) / 2]
         );
 
-        const z = calcZForBBox(bbox, w, h, req.query);
+        // Calculate zoom level
+        const maxZoom = parseFloat(req.query.maxzoom);
+        let z = calcZForBBox(bbox, w, h, req.query);
+        if (maxZoom > 0) {
+          z = Math.min(z, maxZoom);
+        }
+
         const x = center[0];
         const y = center[1];
 
-        const overlay = renderOverlay(z, x, y, bearing, pitch, w, h, scale, path, req.query);
+        const overlay = await renderOverlay(z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query);
 
         return respondImage(item, z, x, y, bearing, pitch, w, h, scale, format, res, next, overlay, 'static');
       });
