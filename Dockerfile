@@ -81,3 +81,5 @@ EXPOSE 80
 USER node:node
 
 ENTRYPOINT ["/usr/src/app/docker-entrypoint.sh"]
+
+HEALTHCHECK CMD node /usr/src/app/src/healthcheck.js
