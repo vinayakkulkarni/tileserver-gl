@@ -84,7 +84,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: maptiler/tileserver-gl:latest, maptiler/tileserver-gl:${{ env.PACKAGE_VERSION }}
+          tags: maptiler/tileserver-gl:latest, maptiler/tileserver-gl:v${{ env.PACKAGE_VERSION }}
           platforms: linux/arm64,linux/amd64
 
       - name: Create Tileserver Light Directory
@@ -108,5 +108,5 @@ jobs:
           context: ./light
           file: ./light/Dockerfile
           push: true
-          tags: maptiler/tileserver-gl-light:latest, maptiler/tileserver-gl-light:${{ env.PACKAGE_VERSION }}
+          tags: maptiler/tileserver-gl-light:latest, maptiler/tileserver-gl-light:v${{ env.PACKAGE_VERSION }}
           platforms: linux/arm64,linux/amd64
