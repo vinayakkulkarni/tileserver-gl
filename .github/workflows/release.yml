@@ -61,6 +61,10 @@ jobs:
         env:
           NPM_TOKEN: ${{ github.event.inputs.npm_token }}
 
+      - name: Get version
+        run: |
+          echo "PACKAGE_VERSION=$(grep '"version"' package.json | cut -d '"' -f 4 | head -n 1)" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
