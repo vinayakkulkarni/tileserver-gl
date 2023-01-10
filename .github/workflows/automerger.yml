@@ -1,9 +1,7 @@
 name: 'Auto Merge PRs'
 
 on:
-  pull_request:
-    branches:
-      - master
+  workflow_call:
 
 permissions:
   pull-requests: write
@@ -12,8 +10,6 @@ permissions:
 jobs:
   automerge:
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - uses: fastify/github-action-merge-dependabot@v3
         with:

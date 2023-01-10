@@ -20,19 +20,32 @@ RUN set -ex; \
       libjpeg-dev \
       libgif-dev \
       librsvg2-dev \
+      gir1.2-rsvg-2.0 \
+      librsvg2-2 \
+      librsvg2-common \
       libcurl4-openssl-dev \
-      libpixman-1-dev; \
-    wget -qO- https://deb.nodesource.com/setup_18.x | bash; \
+      libpixman-1-dev \
+      libpixman-1-0; \
+      apt-get -y --purge autoremove; \
+      apt-get clean; \
+      rm -rf /var/lib/apt/lists/*;
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN wget -qO- https://deb.nodesource.com/setup_18.x | bash; \
     apt-get install -y nodejs; \
+    npm i -g npm@latest; \
     apt-get -y remove wget; \
     apt-get -y --purge autoremove; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*;
 
 RUN mkdir -p /usr/src/app
-COPY package* /usr/src/app/
+COPY package* /usr/src/app
 
-RUN cd /usr/src/app && npm ci --omit=dev
+WORKDIR /usr/src/app
+
+RUN npm install --omit=dev
 
 FROM ubuntu:focal AS final
 
@@ -60,9 +73,16 @@ RUN set -ex; \
       libpixman-1-0 \
       libcurl4 \
       librsvg2-2 \
-      libpango1.0; \
-    wget -qO- https://deb.nodesource.com/setup_18.x | bash; \
+      libpango-1.0-0; \
+      apt-get -y --purge autoremove; \
+      apt-get clean; \
+      rm -rf /var/lib/apt/lists/*;
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN wget -qO- https://deb.nodesource.com/setup_18.x | bash; \ 
     apt-get install -y nodejs; \
+    npm i -g npm@latest; \
     apt-get -y remove wget; \
     apt-get -y --purge autoremove; \
     apt-get clean; \
