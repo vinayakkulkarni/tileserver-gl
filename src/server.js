@@ -359,19 +359,19 @@ function start(opts) {
     return arr;
   };
 
-  app.get('/rendered.json', (req, res, next) => {
+  app.get('/rendered.json', (req, res) => {
     res.send(addTileJSONs([], req, 'rendered'));
   });
-  app.get('/data.json', (req, res, next) => {
+  app.get('/data.json', (req, res) => {
     res.send(addTileJSONs([], req, 'data'));
   });
-  app.get('/index.json', (req, res, next) => {
+  app.get('/index.json', (req, res) => {
     res.send(addTileJSONs(addTileJSONs([], req, 'rendered'), req, 'data'));
   });
 
   // ------------------------------------
   // serve web presentations
-  app.use('/', express.static(path.join(__dirname, '../public/resources')));
+  app.use('/', express.static(path.join(__dirname, '../public/frontend/dist')));
 
   const templates = path.join(__dirname, '../public/templates');
   const serveTemplate = (urlPath, template, dataGetter) => {
@@ -584,9 +584,9 @@ function start(opts) {
   enableShutdown(server);
 
   return {
-    app: app,
-    server: server,
-    startupPromise: startupPromise,
+    app,
+    server,
+    startupPromise,
   };
 }
 
