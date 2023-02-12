@@ -8,20 +8,25 @@
 <script lang="ts">
   import maplibregl from 'maplibre-gl';
   import type { Map } from 'maplibre-gl';
-  import type { Ref } from 'vue';
+  import type { Ref, PropType } from 'vue';
   import type { Style } from '~/types/style';
 
   export default defineComponent({
     name: 'MaplibreMap',
-    setup() {
+    props: {
+      mapStyle: {
+        type: String as PropType<Style['url']>,
+        required: true,
+      },
+    },
+    setup(props) {
       const maplibre = ref(null);
       let map: Ref<Map | null> = shallowRef(null);
 
       onMounted(async () => {
-        const data: Style[] = await $fetch('http://localhost:8080/styles.json');
         map.value = new maplibregl.Map({
           container: maplibre.value! || 'map',
-          style: data[data.length - 1].url,
+          style: props.mapStyle,
           center: [0, 0],
           zoom: 1,
         });

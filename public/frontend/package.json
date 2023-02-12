@@ -8,17 +8,18 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
+  "dependencies": {
+    "maplibre-gl": "^2.4.0"
+  },
   "devDependencies": {
+    "@nuxt/image-edge": "^1.0.0-27919678.2f5b64b",
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
     "@vueuse/core": "^9.12.0",
     "@vueuse/nuxt": "^9.12.0",
     "@windicss/plugin-animations": "^1.0.9",
     "@windicss/plugin-scrollbar": "^1.2.3",
-    "nuxt": "^3.1.2",
+    "nuxt": "^3.2.0",
     "nuxt-windicss": "^2.6.0",
     "typescript": "^4.9.5"
-  },
-  "dependencies": {
-    "maplibre-gl": "^2.4.0"
   }
 }
