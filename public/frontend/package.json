@@ -9,10 +9,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "maplibre-gl": "^2.4.0"
+    "maplibre-gl": "^2.4.0",
+    "maplibre-gl-inspect": "github:acalcutt/maplibre-gl-inspect"
   },
   "devDependencies": {
-    "@nuxt/image-edge": "^1.0.0-27919678.2f5b64b",
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
     "@vueuse/core": "^9.12.0",
     "@vueuse/nuxt": "^9.12.0",

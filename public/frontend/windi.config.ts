@@ -1,4 +1,5 @@
 import colors from 'windicss/colors';
+import defaultTheme from 'windicss/defaultTheme';
 import { defineConfig } from 'windicss/helpers';
 
 const extract = {
@@ -12,6 +13,9 @@ const theme = {
       ...colors,
       gray: colors.stone,
       transparent: 'transparent',
+    },
+    fontFamily: {
+      sans: ['Inter var', ...defaultTheme.fontFamily.sans],
     },
     backgroundImage: {
       'hero-pattern': "url('/images/header.png')",

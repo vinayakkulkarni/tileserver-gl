@@ -11,7 +11,12 @@ const runtimeConfig: NuxtConfig['runtimeConfig'] = {
   },
 };
 
-const css: NuxtConfig['css'] = ['~/assets/css/global.css'];
+const css: NuxtConfig['css'] = [
+  'maplibre-gl/dist/maplibre-gl.css',
+  'maplibre-gl-inspect/dist/maplibre-gl-inspect.css',
+  '~/assets/css/global.css',
+  '~/assets/css/typography.css',
+];
 
 const plugins: NuxtConfig['plugins'] = [];
 

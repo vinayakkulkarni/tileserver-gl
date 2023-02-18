@@ -315,7 +315,7 @@ function start(opts) {
     });
   }
 
-  app.get('/styles.json', (req, res, next) => {
+  app.get('/styles.json', (req, res) => {
     const result = [];
     const query = req.query.key
       ? `?key=${encodeURIComponent(req.query.key)}`
@@ -373,194 +373,12 @@ function start(opts) {
   // serve web presentations
   app.use('/', express.static(path.join(__dirname, '../public/frontend/dist')));
 
-  const templates = path.join(__dirname, '../public/templates');
-  const serveTemplate = (urlPath, template, dataGetter) => {
-    let templateFile = `${templates}/${template}.tmpl`;
-    if (template === 'index') {
-      if (options.frontPage === false) {
-        return;
-      } else if (
-        options.frontPage &&
-        options.frontPage.constructor === String
-      ) {
-        templateFile = path.resolve(paths.root, options.frontPage);
-      }
-    }
-    startupPromises.push(
-      new Promise((resolve, reject) => {
-        fs.readFile(templateFile, (err, content) => {
-          if (err) {
-            err = new Error(`Template not found: ${err.message}`);
-            reject(err);
-            return;
-          }
-          const compiled = handlebars.compile(content.toString());
-
-          app.use(urlPath, (req, res, next) => {
-            let data = {};
-            if (dataGetter) {
-              data = dataGetter(req);
-              if (!data) {
-                return res.status(404).send('Not found');
-              }
-            }
-            data[
-              'server_version'
-            ] = `${packageJson.name} v${packageJson.version}`;
-            data['public_url'] = opts.publicUrl || '/';
-            data['is_light'] = isLight;
-            data['key_query_part'] = req.query.key
-              ? `key=${encodeURIComponent(req.query.key)}&amp;`
-              : '';
-            data['key_query'] = req.query.key
-              ? `?key=${encodeURIComponent(req.query.key)}`
-              : '';
-            if (template === 'wmts') res.set('Content-Type', 'text/xml');
-            return res.status(200).send(compiled(data));
-          });
-          resolve();
-        });
-      }),
-    );
-  };
-
-  serveTemplate('/$', 'index', (req) => {
-    const styles = clone(serving.styles || {});
-    for (const id of Object.keys(styles)) {
-      const style = styles[id];
-      style.name = (serving.styles[id] || serving.rendered[id] || {}).name;
-      style.serving_data = serving.styles[id];
-      style.serving_rendered = serving.rendered[id];
-      if (style.serving_rendered) {
-        const center = style.serving_rendered.tileJSON.center;
-        if (center) {
-          style.viewer_hash = `#${center[2]}/${center[1].toFixed(
-            5,
-          )}/${center[0].toFixed(5)}`;
-
-          const centerPx = mercator.px([center[0], center[1]], center[2]);
-          style.thumbnail = `${center[2]}/${Math.floor(
-            centerPx[0] / 256,
-          )}/${Math.floor(centerPx[1] / 256)}.png`;
-        }
-
-        style.xyz_link = getTileUrls(
-          req,
-          style.serving_rendered.tileJSON.tiles,
-          `styles/${id}`,
-          style.serving_rendered.tileJSON.format,
-          opts.publicUrl,
-        )[0];
-      }
-    }
-    const data = clone(serving.data || {});
-    for (const id of Object.keys(data)) {
-      const data_ = data[id];
-      const tilejson = data[id].tileJSON;
-      const center = tilejson.center;
-      if (center) {
-        data_.viewer_hash = `#${center[2]}/${center[1].toFixed(
-          5,
-        )}/${center[0].toFixed(5)}`;
-      }
-      data_.is_vector = tilejson.format === 'pbf';
-      if (!data_.is_vector) {
-        if (center) {
-          const centerPx = mercator.px([center[0], center[1]], center[2]);
-          data_.thumbnail = `${center[2]}/${Math.floor(
-            centerPx[0] / 256,
-          )}/${Math.floor(centerPx[1] / 256)}.${data_.tileJSON.format}`;
-        }
-
-        data_.xyz_link = getTileUrls(
-          req,
-          tilejson.tiles,
-          `data/${id}`,
-          tilejson.format,
-          opts.publicUrl,
-          {
-            pbf: options.pbfAlias,
-          },
-        )[0];
-      }
-      if (data_.filesize) {
-        let suffix = 'kB';
-        let size = parseInt(data_.filesize, 10) / 1024;
-        if (size > 1024) {
-          suffix = 'MB';
-          size /= 1024;
-        }
-        if (size > 1024) {
-          suffix = 'GB';
-          size /= 1024;
-        }
-        data_.formatted_filesize = `${size.toFixed(2)} ${suffix}`;
-      }
-    }
-    return {
-      styles: Object.keys(styles).length ? styles : null,
-      data: Object.keys(data).length ? data : null,
-    };
-  });
-
-  serveTemplate('/styles/:id/$', 'viewer', (req) => {
-    const id = req.params.id;
-    const style = clone(((serving.styles || {})[id] || {}).styleJSON);
-    if (!style) {
-      return null;
-    }
-    style.id = id;
-    style.name = (serving.styles[id] || serving.rendered[id]).name;
-    style.serving_data = serving.styles[id];
-    style.serving_rendered = serving.rendered[id];
-    return style;
-  });
-
-  /*
-  app.use('/rendered/:id/$', function(req, res, next) {
-    return res.redirect(301, '/styles/' + req.params.id + '/');
-  });
-  */
-  serveTemplate('/styles/:id/wmts.xml', 'wmts', (req) => {
-    const id = req.params.id;
-    const wmts = clone((serving.styles || {})[id]);
-    if (!wmts) {
-      return null;
-    }
-    if (wmts.hasOwnProperty('serve_rendered') && !wmts.serve_rendered) {
-      return null;
-    }
-    wmts.id = id;
-    wmts.name = (serving.styles[id] || serving.rendered[id]).name;
-    if (opts.publicUrl) {
-      wmts.baseUrl = opts.publicUrl;
-    } else {
-      wmts.baseUrl = `${
-        req.get('X-Forwarded-Protocol')
-          ? req.get('X-Forwarded-Protocol')
-          : req.protocol
-      }://${req.get('host')}/`;
-    }
-    return wmts;
-  });
-
-  serveTemplate('/data/:id/$', 'data', (req) => {
-    const id = req.params.id;
-    const data = clone(serving.data[id]);
-    if (!data) {
-      return null;
-    }
-    data.id = id;
-    data.is_vector = data.tileJSON.format === 'pbf';
-    return data;
-  });
-
   let startupComplete = false;
   const startupPromise = Promise.all(startupPromises).then(() => {
     console.log('Startup complete');
     startupComplete = true;
   });
-  app.get('/health', (req, res, next) => {
+  app.get('/health', (req, res) => {
     if (startupComplete) {
       return res.status(200).send('OK');
     } else {

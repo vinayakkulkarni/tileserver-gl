@@ -6,8 +6,9 @@
   </div>
 </template>
 <script lang="ts">
-  import maplibregl from 'maplibre-gl';
+  import maplibregl, { type StyleSpecification } from 'maplibre-gl';
   import type { Map } from 'maplibre-gl';
+  import { emit } from 'process';
   import type { Ref, PropType } from 'vue';
   import type { Style } from '~/types/style';
 
@@ -15,11 +16,12 @@
     name: 'MaplibreMap',
     props: {
       mapStyle: {
-        type: String as PropType<Style['url']>,
+        type: String as PropType<Style['url'] | StyleSpecification>,
         required: true,
       },
     },
-    setup(props) {
+    emits: ['map-load'],
+    setup(props, { emit }) {
       const maplibre = ref(null);
       let map: Ref<Map | null> = shallowRef(null);
 
@@ -29,9 +31,11 @@
           style: props.mapStyle,
           center: [0, 0],
           zoom: 1,
+          hash: true,
         });
         map.value.on('load', () => {
           addControls();
+          emit('map-load', map.value);
         });
       });
 
