@@ -86,9 +86,6 @@ jobs:
           push: true
           tags: maptiler/tileserver-gl:latest, maptiler/tileserver-gl:v${{ env.PACKAGE_VERSION }}
           platforms: linux/arm64,linux/amd64
-          # experimental: https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#cache-backend-api
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Create Tileserver Light Directory
         run: node publish.js --no-publish
@@ -113,6 +110,4 @@ jobs:
           push: true
           tags: maptiler/tileserver-gl-light:latest, maptiler/tileserver-gl-light:v${{ env.PACKAGE_VERSION }}
           platforms: linux/arm64,linux/amd64
-          # experimental: https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#cache-backend-api
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+
