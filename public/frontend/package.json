@@ -1,5 +1,5 @@
 {
-  "version": "4.4.4",
+  "version": "4.4.10",
   "private": true,
   "scripts": {
     "build": "nuxt build",
@@ -10,16 +10,16 @@
   },
   "dependencies": {
     "maplibre-gl": "^2.4.0",
-    "maplibre-gl-inspect": "github:acalcutt/maplibre-gl-inspect"
+    "maplibre-gl-inspect": "^0.0.2"
   },
   "devDependencies": {
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
-    "@vueuse/core": "^9.12.0",
-    "@vueuse/nuxt": "^9.12.0",
+    "@vueuse/core": "^9.13.0",
+    "@vueuse/nuxt": "^9.13.0",
     "@windicss/plugin-animations": "^1.0.9",
     "@windicss/plugin-scrollbar": "^1.2.3",
-    "nuxt": "^3.2.0",
+    "nuxt": "^3.3.1",
     "nuxt-windicss": "^2.6.0",
-    "typescript": "^4.9.5"
+    "typescript": "^5.0.2"
   }
 }

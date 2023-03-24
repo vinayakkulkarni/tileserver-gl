@@ -5,12 +5,6 @@ const app: NuxtConfig['app'] = {
   head,
 };
 
-const runtimeConfig: NuxtConfig['runtimeConfig'] = {
-  public: {
-    appVersion: process.env.npm_package_version,
-  },
-};
-
 const css: NuxtConfig['css'] = [
   'maplibre-gl/dist/maplibre-gl.css',
   'maplibre-gl-inspect/dist/maplibre-gl-inspect.css',
@@ -20,10 +14,18 @@ const css: NuxtConfig['css'] = [
 
 const plugins: NuxtConfig['plugins'] = [];
 
+const runtimeConfig: NuxtConfig['runtimeConfig'] = {
+  public: {
+    appVersion: process.env.npm_package_version,
+  },
+};
+
+const ssr: NuxtConfig['ssr'] = false;
+
 const typescript: NuxtConfig['typescript'] = {
   strict: true,
   shim: false,
 };
 
 export { modules } from './modules';
-export { app, css, plugins, runtimeConfig, typescript };
+export { app, css, plugins, runtimeConfig, ssr, typescript };

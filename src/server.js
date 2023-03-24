@@ -12,7 +12,6 @@ import clone from 'clone';
 import cors from 'cors';
 import enableShutdown from 'http-shutdown';
 import express from 'express';
-import handlebars from 'handlebars';
 import SphericalMercator from '@mapbox/sphericalmercator';
 const mercator = new SphericalMercator();
 import morgan from 'morgan';

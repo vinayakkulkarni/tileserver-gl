@@ -6,17 +6,15 @@
   </div>
 </template>
 <script lang="ts">
-  import maplibregl, { type StyleSpecification } from 'maplibre-gl';
-  import type { Map } from 'maplibre-gl';
-  import { emit } from 'process';
+  import maplibregl from 'maplibre-gl';
+  import type { Map, StyleSpecification } from 'maplibre-gl';
   import type { Ref, PropType } from 'vue';
-  import type { Style } from '~/types/style';
 
   export default defineComponent({
     name: 'MaplibreMap',
     props: {
       mapStyle: {
-        type: String as PropType<Style['url'] | StyleSpecification>,
+        type: Object as PropType<StyleSpecification>,
         required: true,
       },
     },
@@ -33,6 +31,7 @@
           zoom: 1,
           hash: true,
         });
+
         map.value.on('load', () => {
           addControls();
           emit('map-load', map.value);
