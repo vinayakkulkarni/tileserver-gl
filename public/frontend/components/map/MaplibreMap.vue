@@ -1,5 +1,5 @@
 <template>
-  <div ref="maplibre" id="map" class="w-full h-full relative">
+  <div ref="mapRef" id="map" class="w-full h-full relative">
     <div class="z-40 absolute top-0 right-0">
       <slot />
     </div>
@@ -20,12 +20,12 @@
     },
     emits: ['map-load'],
     setup(props, { emit }) {
-      const maplibre = ref(null);
+      const mapRef = ref(null);
       let map: Ref<Map | null> = shallowRef(null);
 
       onMounted(async () => {
         map.value = new maplibregl.Map({
-          container: maplibre.value! || 'map',
+          container: mapRef.value! || 'map',
           style: props.mapStyle,
           center: [0, 0],
           zoom: 1,
@@ -69,7 +69,7 @@
       };
 
       return {
-        maplibre,
+        mapRef,
       };
     },
   });

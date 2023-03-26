@@ -22,7 +22,7 @@
               class="flex justify-between items-center space-x-6"
             >
               <img
-                :src="`/styles/${style.id}/0/0/0.png`"
+                :src="`http://localhost:8080/styles/${style.id}/0/0/0.png`"
                 :alt="`${style.name} preview`"
                 class="w-32 h-32 object-cover rounded border shadow"
               />
@@ -32,19 +32,19 @@
                 <p class="text-sm divide-x">
                   services:
                   <a
-                    :href="`/styles/${style.id}/style.json`"
+                    :href="`http://localhost:8080/styles/${style.id}/style.json`"
                     class="text-blue-600 hover:underline"
                   >
                     GL Style
                   </a>
                   <a
-                    :href="`/styles/${style.id}.json`"
+                    :href="`http://localhost:8080/styles/${style.id}.json`"
                     class="text-blue-600 hover:underline"
                   >
                     TileJSON
                   </a>
                   <a
-                    :href="`/styles/${style.id}/wmts.xml`"
+                    :href="`http://localhost:8080/styles/${style.id}/wmts.xml`"
                     class="text-blue-600 hover:underline"
                   >
                     WMTS
@@ -139,16 +139,15 @@
 </template>
 
 <script lang="ts">
-  import type { Data, Style } from '~/types';
-
   export default defineComponent({
     name: 'HomePage',
     async setup() {
-      let styles: Style[] = await $fetch('http://localhost:8080/styles.json');
-      let data: Data[] = await $fetch('http://localhost:8080/data.json');
+      const { data: mapData } = await useData();
+      const { data: mapStyles } = await useMapStyles();
+
       return {
-        styles,
-        data,
+        styles: mapStyles,
+        data: mapData,
       };
     },
   });

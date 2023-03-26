@@ -5,7 +5,7 @@ import { TileJSON } from '~/types/style';
  * Returns if raster tiles are requested by the browser
  *
  */
-async function useRaster() {
+async function useMapStyle() {
   const route = useRoute();
   const isRaster = computed(() => 'raster' in route.query);
   const style = ref<StyleSpecification>({
@@ -60,4 +60,4 @@ async function useRaster() {
   return { style };
 }
 
-export { useRaster };
+export { useMapStyle };

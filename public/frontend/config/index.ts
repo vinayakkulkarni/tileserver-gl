@@ -1,4 +1,5 @@
 import { NuxtConfig } from '@nuxt/schema';
+import { useNitroConfig } from './nitro';
 import { head } from './head';
 
 const app: NuxtConfig['app'] = {
@@ -11,6 +12,8 @@ const css: NuxtConfig['css'] = [
   '~/assets/css/global.css',
   '~/assets/css/typography.css',
 ];
+
+const components: NuxtConfig['components'] = false;
 
 const plugins: NuxtConfig['plugins'] = [];
 
@@ -27,5 +30,15 @@ const typescript: NuxtConfig['typescript'] = {
   shim: false,
 };
 
+const hooks: NuxtConfig['hooks'] = {
+  async 'nitro:config'(nitroConfig) {
+    if (nitroConfig.dev) {
+      return;
+    }
+    const routes = await useNitroConfig();
+    nitroConfig.prerender?.routes?.push(...routes);
+  },
+};
+
 export { modules } from './modules';
-export { app, css, plugins, runtimeConfig, ssr, typescript };
+export { app, css, components, hooks, plugins, runtimeConfig, ssr, typescript };
