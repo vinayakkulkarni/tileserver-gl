@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "maplibre-gl": "^2.4.0",
-    "maplibre-gl-inspect": "^0.0.2"
+    "maplibre-gl-inspect": "^0.0.3"
   },
   "devDependencies": {
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
