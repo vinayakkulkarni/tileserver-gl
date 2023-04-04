@@ -33,8 +33,8 @@
         });
 
         map.value.on('load', () => {
-          addControls();
           emit('map-load', map.value);
+          addControls();
         });
       });
 

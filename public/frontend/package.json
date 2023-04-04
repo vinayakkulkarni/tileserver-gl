@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "maplibre-gl": "^2.4.0",
-    "maplibre-gl-inspect": "^0.0.3"
+    "maplibre-gl-inspect": "^0.0.6"
   },
   "devDependencies": {
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
@@ -19,7 +19,9 @@
     "@windicss/plugin-animations": "^1.0.9",
     "@windicss/plugin-scrollbar": "^1.2.3",
     "nuxt": "^3.3.2",
+    "nuxt": "^3.3.3",
     "nuxt-windicss": "^2.6.0",
     "typescript": "^5.0.2"
+    "typescript": "^5.0.3"
   }
 }
