@@ -1,7 +1,7 @@
 import type { Data } from '~/types';
 
 /**
- * Returns if raster tiles are requested by the browser
+ * Returns the data for the current route.
  *
  */
 async function useDataSource() {
