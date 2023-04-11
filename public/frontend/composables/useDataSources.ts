@@ -4,7 +4,7 @@ import type { Data } from '~/types';
  * Returns if raster tiles are requested by the browser
  *
  */
-async function useData() {
+async function useDataSources() {
   const data = ref<Data[]>([]);
   try {
     const { data: response } = await useFetch(
@@ -18,4 +18,4 @@ async function useData() {
   return { data };
 }
 
-export { useData };
+export { useDataSources };

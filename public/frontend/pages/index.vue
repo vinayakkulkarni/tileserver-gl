@@ -31,29 +31,38 @@
                 <p class="text-sm font-light">identifier: {{ style.id }}</p>
                 <p class="text-sm divide-x">
                   services:
-                  <a
-                    :href="`http://localhost:8080/styles/${style.id}/style.json`"
-                    class="text-blue-600 hover:underline"
+                  <button
+                    type="button"
+                    aria-label="GL Style"
+                    class="text-blue-600 hover:underline pr-1"
+                    @click="goto('gl-style', style)"
                   >
+                    <!-- :to="`/styles/${style.id}/style.json`" -->
                     GL Style
-                  </a>
-                  <a
-                    :href="`http://localhost:8080/styles/${style.id}.json`"
-                    class="text-blue-600 hover:underline"
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="TileJSON"
+                    class="text-blue-600 hover:underline px-1"
+                    @click="goto('tilejson', style)"
                   >
+                    <!-- :to="`/styles/${style.id}.json`" -->
                     TileJSON
-                  </a>
-                  <a
-                    :href="`http://localhost:8080/styles/${style.id}/wmts.xml`"
-                    class="text-blue-600 hover:underline"
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="WMTS"
+                    class="text-blue-600 hover:underline pl-1"
+                    @click="goto('wmts', style)"
                   >
+                    <!-- :to="`/styles/${style.id}/wmts.xml`" -->
                     WMTS
-                  </a>
-                  <!-- <a class="text-blue-600 hover:underline"> XYZ </a>
+                  </button>
+                  <!-- <a class="text-blue-600 hover:underline pl-2"> XYZ </a>
                   <input
-                    id="xyz_style_dark-matter"
+                    :id="`xyz_style_${style.id}`"
                     type="text"
-                    value="http://localhost:8080/styles/dark-matter/{z}/{x}/{y}.webp"
+                    :value="/styles/${style.id}/{z}/{x}/{y}.webp"
                     style="display: none"
                   /> -->
                 </p>
@@ -139,15 +148,37 @@
 </template>
 
 <script lang="ts">
+  import type { Style } from '~/types';
+
   export default defineComponent({
     name: 'HomePage',
     async setup() {
-      const { data: mapData } = await useData();
+      const router = useRouter();
+      const { data: mapDatasets } = await useDataSources();
       const { data: mapStyles } = await useMapStyles();
-
+      const goto = (type: string, style: Style) => {
+        if (type === 'gl-style') {
+          router.push({
+            path: `/styles/${style.id}/style.json`,
+            params: { raster: '' },
+          });
+        }
+        if (type === 'tilejson') {
+          router.push({
+            path: `/styles/${style.id}.json`,
+            params: { raster: '' },
+          });
+        }
+        if (type === 'wmts') {
+          router.push({
+            path: `/styles/${style.id}/wmts.xml`,
+          });
+        }
+      };
       return {
         styles: mapStyles,
-        data: mapData,
+        data: mapDatasets,
+        goto,
       };
     },
   });

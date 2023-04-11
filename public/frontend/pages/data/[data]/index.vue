@@ -1,6 +1,6 @@
 <template>
   <v-header />
-  <div ref="map" id="map" class="w-full h-full" />
+  <div ref="mapRef" id="map" class="w-full h-full" />
   <v-footer />
 </template>
 
@@ -18,28 +18,35 @@
       VFooter,
     },
     setup() {
-      const mapRef = ref(null);
-
       const route = useRoute();
-      const style: StyleSpecification = {
-        version: 8,
-        sources: {
-          openmaptiles: {
-            type: 'vector',
-            url: `http://localhost:8080/data/${route.params.data}.json`,
-          },
-        },
-        layers: [],
-      };
+      const mapRef = ref(null);
+      let map = markRaw({} as Map);
 
       onMounted(async () => {
-        const map: Map = new maplibregl.Map({
-          container: mapRef.value! || 'map',
-          style: style,
+        map = new maplibregl.Map({
+          container: mapRef.value || 'map',
+          style: {
+            version: 8,
+            sources: {
+              openmaptiles: {
+                type: 'vector',
+                url: `http://localhost:8080/data/${route.params.data}.json`,
+              },
+            },
+            layers: [],
+          },
           center: [0, 0],
           zoom: 1,
           hash: true,
         });
+        addControls();
+      });
+
+      /**
+       * Add Scale, Geolocate & Navigate controls to the map
+       * @returns {void}
+       */
+      const addControls = (): void => {
         const scale = new maplibregl.ScaleControl({
           maxWidth: 80,
         });
@@ -54,18 +61,17 @@
           },
           trackUserLocation: true,
         });
-
         const inspect = new MaplibreInspect({
           showInspectMap: true,
           showInspectButton: false,
           useInspectStyle: true,
-        } as MaplibreInspect['options']);
+        });
 
         map.addControl(scale, 'bottom-left');
         map.addControl(geolocate, 'bottom-right');
         map.addControl(nav, 'bottom-right');
-        map.addControl(inspect);
-      });
+        map.addControl(inspect, 'top-right');
+      };
 
       return {
         mapRef,
