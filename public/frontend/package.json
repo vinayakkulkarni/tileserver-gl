@@ -14,12 +14,12 @@
   },
   "devDependencies": {
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
-    "@vueuse/core": "^9.13.0",
-    "@vueuse/nuxt": "^9.13.0",
+    "@vueuse/core": "^10.1.0",
+    "@vueuse/nuxt": "^10.1.0",
     "@windicss/plugin-animations": "^1.0.9",
     "@windicss/plugin-scrollbar": "^1.2.3",
-    "nuxt": "^3.3.3",
-    "nuxt-windicss": "^2.6.0",
-    "typescript": "^5.0.3"
+    "nuxt": "^3.4.2",
+    "nuxt-windicss": "^2.6.1",
+    "typescript": "^5.0.4"
   }
 }

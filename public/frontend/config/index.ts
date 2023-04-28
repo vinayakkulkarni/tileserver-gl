@@ -1,5 +1,5 @@
 import { NuxtConfig } from '@nuxt/schema';
-import { useNitroConfig } from './nitro';
+// import { useNitroConfig } from './nitro';
 import { head } from './head';
 
 const app: NuxtConfig['app'] = {
@@ -31,13 +31,13 @@ const typescript: NuxtConfig['typescript'] = {
 };
 
 const hooks: NuxtConfig['hooks'] = {
-  async 'nitro:config'(nitroConfig) {
-    if (nitroConfig.dev) {
-      return;
-    }
-    const routes = await useNitroConfig();
-    nitroConfig.prerender?.routes?.push(...routes);
-  },
+  // async 'nitro:config'(nitroConfig) {
+  //   if (nitroConfig.dev) {
+  //     return;
+  //   }
+  //   const routes = await useNitroConfig();
+  //   nitroConfig.prerender?.routes?.push(...routes);
+  // },
 };
 
 export { modules } from './modules';
