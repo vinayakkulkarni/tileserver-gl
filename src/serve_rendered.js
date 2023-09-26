@@ -54,7 +54,6 @@ const cachedEmptyResponses = {
 
 /**
  * Create an appropriate mlgl response for http errors.
- *
  * @param {string} format The format (a sharp format or 'pbf').
  * @param {string} color The background color (or empty string for transparent).
  * @param {Function} callback The mlgl callback.
@@ -102,7 +101,6 @@ function createEmptyResponse(format, color, callback) {
 /**
  * Parses coordinate pair provided to pair of floats and ensures the resulting
  * pair is a longitude/latitude combination depending on lnglat query parameter.
- *
  * @param {List} coordinatePair Coordinate pair.
  * @param coordinates
  * @param {object} query Request query parameters.
@@ -127,7 +125,6 @@ const parseCoordinatePair = (coordinates, query) => {
 
 /**
  * Parses a coordinate pair from query arguments and optionally transforms it.
- *
  * @param {List} coordinatePair Coordinate pair.
  * @param {object} query Request query parameters.
  * @param {Function} transformer Optional transform function.
@@ -145,7 +142,6 @@ const parseCoordinates = (coordinatePair, query, transformer) => {
 
 /**
  * Parses paths provided via query into a list of path objects.
- *
  * @param {object} query Request query parameters.
  * @param {Function} transformer Optional transform function.
  */
@@ -220,7 +216,6 @@ const extractPathsFromQuery = (query, transformer) => {
  * on marker object.
  * Options adhere to the following format
  * [optionName]:[optionValue]
- *
  * @param {List[String]} optionsList List of option strings.
  * @param {object} marker Marker object to configure.
  */
@@ -255,7 +250,6 @@ const parseMarkerOptions = (optionsList, marker) => {
 
 /**
  * Parses markers provided via query into a list of marker objects.
- *
  * @param {object} query Request query parameters.
  * @param {object} options Configuration options.
  * @param {Function} transformer Optional transform function.
@@ -335,7 +329,6 @@ const extractMarkersFromQuery = (query, options, transformer) => {
 
 /**
  * Transforms coordinates to pixels.
- *
  * @param {List[Number]} ll Longitude/Latitude coordinate pair.
  * @param {number} zoom Map zoom level.
  */
@@ -347,7 +340,6 @@ const precisePx = (ll, zoom) => {
 
 /**
  * Draws a marker in cavans context.
- *
  * @param {object} ctx Canvas context object.
  * @param {object} marker Marker object parsed by extractMarkersFromQuery.
  * @param {number} z Map zoom level.
@@ -419,7 +411,6 @@ const drawMarker = (ctx, marker, z) => {
  * Wraps drawing of markers into list of promises and awaits them.
  * It's required because images are expected to load asynchronous in canvas js
  * even when provided from a local disk.
- *
  * @param {object} ctx Canvas context object.
  * @param {List[Object]} markers Marker objects parsed by extractMarkersFromQuery.
  * @param {number} z Map zoom level.
@@ -438,7 +429,6 @@ const drawMarkers = async (ctx, markers, z) => {
 
 /**
  * Draws a list of coordinates onto a canvas and styles the resulting path.
- *
  * @param {object} ctx Canvas context object.
  * @param {List[Number]} path List of coordinates.
  * @param {object} query Request query parameters.
@@ -889,34 +879,117 @@ export const serve_rendered = {
       app.get(
         util.format(staticPattern, centerPattern),
         async (req, res, next) => {
+          try {
+            const item = repo[req.params.id];
+            if (!item) {
+              return res.sendStatus(404);
+            }
+            const raw = req.params.raw;
+            const z = +req.params.z;
+            let x = +req.params.x;
+            let y = +req.params.y;
+            const bearing = +(req.params.bearing || '0');
+            const pitch = +(req.params.pitch || '0');
+            const w = req.params.width | 0;
+            const h = req.params.height | 0;
+            const scale = getScale(req.params.scale);
+            const format = req.params.format;
+
+            if (z < 0) {
+              return res.status(404).send('Invalid zoom');
+            }
+
+            const transformer = raw
+              ? mercator.inverse.bind(mercator)
+              : item.dataProjWGStoInternalWGS;
+
+            if (transformer) {
+              const ll = transformer([x, y]);
+              x = ll[0];
+              y = ll[1];
+            }
+
+            const paths = extractPathsFromQuery(req.query, transformer);
+            const markers = extractMarkersFromQuery(
+              req.query,
+              options,
+              transformer,
+            );
+            const overlay = await renderOverlay(
+              z,
+              x,
+              y,
+              bearing,
+              pitch,
+              w,
+              h,
+              scale,
+              paths,
+              markers,
+              req.query,
+            );
+
+            return respondImage(
+              item,
+              z,
+              x,
+              y,
+              bearing,
+              pitch,
+              w,
+              h,
+              scale,
+              format,
+              res,
+              next,
+              overlay,
+              'static',
+            );
+          } catch (e) {
+            next(e);
+          }
+        },
+      );
+
+      const serveBounds = async (req, res, next) => {
+        try {
           const item = repo[req.params.id];
           if (!item) {
             return res.sendStatus(404);
           }
           const raw = req.params.raw;
-          const z = +req.params.z;
-          let x = +req.params.x;
-          let y = +req.params.y;
-          const bearing = +(req.params.bearing || '0');
-          const pitch = +(req.params.pitch || '0');
-          const w = req.params.width | 0;
-          const h = req.params.height | 0;
-          const scale = getScale(req.params.scale);
-          const format = req.params.format;
-
-          if (z < 0) {
-            return res.status(404).send('Invalid zoom');
-          }
+          const bbox = [
+            +req.params.minx,
+            +req.params.miny,
+            +req.params.maxx,
+            +req.params.maxy,
+          ];
+          let center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
 
           const transformer = raw
             ? mercator.inverse.bind(mercator)
             : item.dataProjWGStoInternalWGS;
 
           if (transformer) {
-            const ll = transformer([x, y]);
-            x = ll[0];
-            y = ll[1];
+            const minCorner = transformer(bbox.slice(0, 2));
+            const maxCorner = transformer(bbox.slice(2));
+            bbox[0] = minCorner[0];
+            bbox[1] = minCorner[1];
+            bbox[2] = maxCorner[0];
+            bbox[3] = maxCorner[1];
+            center = transformer(center);
           }
+
+          const w = req.params.width | 0;
+          const h = req.params.height | 0;
+          const scale = getScale(req.params.scale);
+          const format = req.params.format;
+
+          const z = calcZForBBox(bbox, w, h, req.query);
+          const x = center[0];
+          const y = center[1];
+          const bearing = 0;
+          const pitch = 0;
 
           const paths = extractPathsFromQuery(req.query, transformer);
           const markers = extractMarkersFromQuery(
@@ -937,7 +1010,6 @@ export const serve_rendered = {
             markers,
             req.query,
           );
-
           return respondImage(
             item,
             z,
@@ -954,83 +1026,9 @@ export const serve_rendered = {
             overlay,
             'static',
           );
-        },
-      );
-
-      const serveBounds = async (req, res, next) => {
-        const item = repo[req.params.id];
-        if (!item) {
-          return res.sendStatus(404);
+        } catch (e) {
+          next(e);
         }
-        const raw = req.params.raw;
-        const bbox = [
-          +req.params.minx,
-          +req.params.miny,
-          +req.params.maxx,
-          +req.params.maxy,
-        ];
-        let center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
-
-        const transformer = raw
-          ? mercator.inverse.bind(mercator)
-          : item.dataProjWGStoInternalWGS;
-
-        if (transformer) {
-          const minCorner = transformer(bbox.slice(0, 2));
-          const maxCorner = transformer(bbox.slice(2));
-          bbox[0] = minCorner[0];
-          bbox[1] = minCorner[1];
-          bbox[2] = maxCorner[0];
-          bbox[3] = maxCorner[1];
-          center = transformer(center);
-        }
-
-        const w = req.params.width | 0;
-        const h = req.params.height | 0;
-        const scale = getScale(req.params.scale);
-        const format = req.params.format;
-
-        const z = calcZForBBox(bbox, w, h, req.query);
-        const x = center[0];
-        const y = center[1];
-        const bearing = 0;
-        const pitch = 0;
-
-        const paths = extractPathsFromQuery(req.query, transformer);
-        const markers = extractMarkersFromQuery(
-          req.query,
-          options,
-          transformer,
-        );
-        const overlay = await renderOverlay(
-          z,
-          x,
-          y,
-          bearing,
-          pitch,
-          w,
-          h,
-          scale,
-          paths,
-          markers,
-          req.query,
-        );
-        return respondImage(
-          item,
-          z,
-          x,
-          y,
-          bearing,
-          pitch,
-          w,
-          h,
-          scale,
-          format,
-          res,
-          next,
-          overlay,
-          'static',
-        );
       };
 
       const boundsPattern = util.format(
@@ -1070,97 +1068,101 @@ export const serve_rendered = {
       app.get(
         util.format(staticPattern, autoPattern),
         async (req, res, next) => {
-          const item = repo[req.params.id];
-          if (!item) {
-            return res.sendStatus(404);
+          try {
+            const item = repo[req.params.id];
+            if (!item) {
+              return res.sendStatus(404);
+            }
+            const raw = req.params.raw;
+            const w = req.params.width | 0;
+            const h = req.params.height | 0;
+            const bearing = 0;
+            const pitch = 0;
+            const scale = getScale(req.params.scale);
+            const format = req.params.format;
+
+            const transformer = raw
+              ? mercator.inverse.bind(mercator)
+              : item.dataProjWGStoInternalWGS;
+
+            const paths = extractPathsFromQuery(req.query, transformer);
+            const markers = extractMarkersFromQuery(
+              req.query,
+              options,
+              transformer,
+            );
+
+            // Extract coordinates from markers
+            const markerCoordinates = [];
+            for (const marker of markers) {
+              markerCoordinates.push(marker.location);
+            }
+
+            // Create array with coordinates from markers and path
+            const coords = [].concat(paths.flat()).concat(markerCoordinates);
+
+            // Check if we have at least one coordinate to calculate a bounding box
+            if (coords.length < 1) {
+              return res.status(400).send('No coordinates provided');
+            }
+
+            const bbox = [Infinity, Infinity, -Infinity, -Infinity];
+            for (const pair of coords) {
+              bbox[0] = Math.min(bbox[0], pair[0]);
+              bbox[1] = Math.min(bbox[1], pair[1]);
+              bbox[2] = Math.max(bbox[2], pair[0]);
+              bbox[3] = Math.max(bbox[3], pair[1]);
+            }
+
+            const bbox_ = mercator.convert(bbox, '900913');
+            const center = mercator.inverse([
+              (bbox_[0] + bbox_[2]) / 2,
+              (bbox_[1] + bbox_[3]) / 2,
+            ]);
+
+            // Calculate zoom level
+            const maxZoom = parseFloat(req.query.maxzoom);
+            let z = calcZForBBox(bbox, w, h, req.query);
+            if (maxZoom > 0) {
+              z = Math.min(z, maxZoom);
+            }
+
+            const x = center[0];
+            const y = center[1];
+
+            const overlay = await renderOverlay(
+              z,
+              x,
+              y,
+              bearing,
+              pitch,
+              w,
+              h,
+              scale,
+              paths,
+              markers,
+              req.query,
+            );
+
+            return respondImage(
+              item,
+              z,
+              x,
+              y,
+              bearing,
+              pitch,
+              w,
+              h,
+              scale,
+              format,
+              res,
+              next,
+              overlay,
+              'static',
+            );
+          } catch (e) {
+            next(e);
           }
-          const raw = req.params.raw;
-          const w = req.params.width | 0;
-          const h = req.params.height | 0;
-          const bearing = 0;
-          const pitch = 0;
-          const scale = getScale(req.params.scale);
-          const format = req.params.format;
-
-          const transformer = raw
-            ? mercator.inverse.bind(mercator)
-            : item.dataProjWGStoInternalWGS;
-
-          const paths = extractPathsFromQuery(req.query, transformer);
-          const markers = extractMarkersFromQuery(
-            req.query,
-            options,
-            transformer,
-          );
-
-          // Extract coordinates from markers
-          const markerCoordinates = [];
-          for (const marker of markers) {
-            markerCoordinates.push(marker.location);
-          }
-
-          // Create array with coordinates from markers and path
-          const coords = [].concat(paths.flat()).concat(markerCoordinates);
-
-          // Check if we have at least one coordinate to calculate a bounding box
-          if (coords.length < 1) {
-            return res.status(400).send('No coordinates provided');
-          }
-
-          const bbox = [Infinity, Infinity, -Infinity, -Infinity];
-          for (const pair of coords) {
-            bbox[0] = Math.min(bbox[0], pair[0]);
-            bbox[1] = Math.min(bbox[1], pair[1]);
-            bbox[2] = Math.max(bbox[2], pair[0]);
-            bbox[3] = Math.max(bbox[3], pair[1]);
-          }
-
-          const bbox_ = mercator.convert(bbox, '900913');
-          const center = mercator.inverse([
-            (bbox_[0] + bbox_[2]) / 2,
-            (bbox_[1] + bbox_[3]) / 2,
-          ]);
-
-          // Calculate zoom level
-          const maxZoom = parseFloat(req.query.maxzoom);
-          let z = calcZForBBox(bbox, w, h, req.query);
-          if (maxZoom > 0) {
-            z = Math.min(z, maxZoom);
-          }
-
-          const x = center[0];
-          const y = center[1];
-
-          const overlay = await renderOverlay(
-            z,
-            x,
-            y,
-            bearing,
-            pitch,
-            w,
-            h,
-            scale,
-            paths,
-            markers,
-            req.query,
-          );
-
-          return respondImage(
-            item,
-            z,
-            x,
-            y,
-            bearing,
-            pitch,
-            w,
-            h,
-            scale,
-            format,
-            res,
-            next,
-            overlay,
-            'static',
-          );
         },
       );
     }
