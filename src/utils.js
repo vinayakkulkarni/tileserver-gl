@@ -8,7 +8,6 @@ import glyphCompose from '@mapbox/glyph-pbf-composite';
 
 /**
  * Generate new URL object
- *
  * @param req
  * @params {object} req - Express request
  * @returns {URL} object

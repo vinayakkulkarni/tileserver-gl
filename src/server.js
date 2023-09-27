@@ -114,7 +114,6 @@ function start(opts) {
   /**
    * Recursively get all files within a directory.
    * Inspired by https://stackoverflow.com/a/45130990/10133863
-   *
    * @param {string} directory Absolute path to a directory to get files from.
    */
   const getFiles = async (directory) => {
@@ -592,7 +591,6 @@ function start(opts) {
 
 /**
  * Stop the server gracefully
- *
  * @param {string} signal Name of the received signal
  */
 function stopGracefully(signal) {
