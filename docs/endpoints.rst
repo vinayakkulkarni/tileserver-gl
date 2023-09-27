@@ -48,7 +48,7 @@ Static images
 
         * ``((fill|stroke|width)\:[^\|]+\|)*((enc:.+)|((-?\d+\.?\d*,-?\d+\.?\d*\|)+(-?\d+\.?\d*,-?\d+\.?\d*)))``
         * e.g. ``path=stroke:yellow|width:2|fill:green|5.9,45.8|5.9,47.8|10.5,47.8|10.5,45.8|5.9,45.8`` or ``stroke:blue|enc:_p~iF~ps|U_ulLnnqC_mqNvxq`@``
-        * 'enc:' is specified in `Google Encoded Polyline Format <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`. If used, the rest of the path parameter is considered to be part of the encoded polyline string -- do not specify the coordinate pairs.
+        * 'enc:' is specified in `Google Encoded Polyline Format <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>`_. If used, the rest of the path parameter is considered to be part of the encoded polyline string -- do not specify the coordinate pairs.
   * ``latlng`` - indicates coordinates are in ``lat,lng`` order rather than the usual ``lng,lat``
   * ``fill`` - color to use as the fill (e.g. ``red``, ``rgba(255,255,255,0.5)``, ``#0000ff``)
   * ``stroke`` - color of the path stroke
