@@ -162,21 +162,12 @@ const extractPathsFromQuery = (query, transformer) => {
         providedPath.includes('enc:') &&
         PATH_PATTERN.test(decodeURIComponent(providedPath))
       ) {
-        const encodedPaths = providedPath.split(',');
-        for (const path of encodedPaths) {
-          const line = path
-            .split('|')
-            .filter(
-              (x) =>
-                !x.startsWith('fill') &&
-                !x.startsWith('stroke') &&
-                !x.startsWith('width'),
-            )
-            .join('')
-            .replace('enc:', '');
-          const coords = polyline.decode(line).map(([lat, lng]) => [lng, lat]);
-          paths.push(coords);
-        }
+        // +4 because 'enc:' is 4 characters, everything after 'enc:' is considered to be part of the polyline
+        const encIndex = providedPath.indexOf('enc:') + 4;
+        const coords = polyline
+          .decode(providedPath.substring(encIndex))
+          .map(([lat, lng]) => [lng, lat]);
+        paths.push(coords);
       } else {
         // Iterate through paths, parse and validate them
         const currentPath = [];
@@ -520,8 +511,8 @@ const drawPath = (ctx, path, query, pathQuery, z) => {
     if ('stroke' in query) {
       ctx.strokeStyle = query.stroke;
     }
-    // Path Width gets higher priority
-    if (pathHasWidth) {
+    // Path Stroke gets higher priority
+    if (pathHasStroke) {
       ctx.strokeStyle = splitPaths
         .find((x) => x.startsWith('stroke:'))
         .replace('stroke:', '');
