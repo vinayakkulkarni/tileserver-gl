@@ -771,6 +771,35 @@ export const serve_rendered = {
             composite_array.push({ input: canvas.toBuffer() });
           }
 
+          if (opt_mode === 'static' && item.staticAttributionText) {
+            const canvas = createCanvas(scale * width, scale * height);
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+
+            ctx.font = '10px sans-serif';
+            const text = item.staticAttributionText;
+            const textMetrics = ctx.measureText(text);
+            const textWidth = textMetrics.width;
+            const textHeight = 14;
+
+            const padding = 6;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(
+              width - textWidth - padding,
+              height - textHeight - padding,
+              textWidth + padding,
+              textHeight + padding,
+            );
+            ctx.fillStyle = 'rgba(0,0,0,.8)';
+            ctx.fillText(
+              item.staticAttributionText,
+              width - textWidth - padding / 2,
+              height - textHeight + 8,
+            );
+
+            composite_array.push({ input: canvas.toBuffer() });
+          }
+
           if (composite_array.length > 0) {
             image.composite(composite_array);
           }
@@ -1378,6 +1407,8 @@ export const serve_rendered = {
       dataProjWGStoInternalWGS: null,
       lastModified: new Date().toUTCString(),
       watermark: params.watermark || options.watermark,
+      staticAttributionText:
+        params.staticAttributionText || options.staticAttributionText,
     };
     repo[id] = repoobj;
 

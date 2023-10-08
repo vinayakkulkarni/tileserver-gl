@@ -33,6 +33,7 @@ Example:
       "serveAllStyles": false,
       "serveStaticMaps": true,
       "allowRemoteMarkerIcons": true,
+      "staticAttributionText": "© OpenMapTiles  © OpenStreetMaps",
       "tileMargin": 0
     },
     "styles": {
@@ -140,7 +141,13 @@ It is recommended to also use the ``serveAllFonts`` option when using this optio
 -----------
 
 Optional string to be rendered into the raster tiles (and static maps) as watermark (bottom-left corner).
-Can be used for hard-coding attributions etc. (can also be specified per-style).
+Not used by default.
+
+``staticAttributionText``
+-----------
+
+Optional string to be rendered in the static images endpoint. Text will be rendered in the bottom-right corner,
+and styled similar to attribution on web-based maps (text only, links not supported).
 Not used by default.
 
 ``allowRemoteMarkerIcons``
