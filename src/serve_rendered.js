@@ -279,7 +279,10 @@ const extractMarkersFromQuery = (query, options, transformer) => {
     let iconURI = markerParts[1];
     // Check if icon is served via http otherwise marker icons are expected to
     // be provided as filepaths relative to configured icon path
-    if (!(iconURI.startsWith('http://') || iconURI.startsWith('https://'))) {
+    const isRemoteURL =
+      iconURI.startsWith('http://') || iconURI.startsWith('https://');
+    const isDataURL = iconURI.startsWith('data:');
+    if (!(isRemoteURL || isDataURL)) {
       // Sanitize URI with sanitize-filename
       // https://www.npmjs.com/package/sanitize-filename#details
       iconURI = sanitize(iconURI);
@@ -292,7 +295,9 @@ const extractMarkersFromQuery = (query, options, transformer) => {
       iconURI = path.resolve(options.paths.icons, iconURI);
 
       // When we encounter a remote icon check if the configuration explicitly allows them.
-    } else if (options.allowRemoteMarkerIcons !== true) {
+    } else if (isRemoteURL && options.allowRemoteMarkerIcons !== true) {
+      continue;
+    } else if (isDataURL && options.allowInlineMarkerImages !== true) {
       continue;
     }
 
