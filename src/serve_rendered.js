@@ -22,8 +22,8 @@ import { getFontsPbf, getTileUrls, fixTileJSONCenter } from './utils.js';
 
 const FLOAT_PATTERN = '[+-]?(?:\\d+|\\d+.?\\d+)';
 const PATH_PATTERN =
-  /^((fill|stroke|width)\:[^\|]+\|)*((enc:.+)|((-?\d+\.?\d*,-?\d+\.?\d*\|)+(-?\d+\.?\d*,-?\d+\.?\d*)))/;
-const httpTester = /^(http(s)?:)?\/\//;
+  /^((fill|stroke|width)\:[^\|]+\|)*(enc:.+|-?\d+(\.\d*)?,-?\d+(\.\d*)?(\|-?\d+(\.\d*)?,-?\d+(\.\d*)?)+)/;
+const httpTester = /^\/\//;
 
 const mercator = new SphericalMercator();
 const getScale = (scale) => (scale || '@1x').slice(1, 2) | 0;
@@ -158,10 +158,7 @@ const extractPathsFromQuery = (query, transformer) => {
     // Iterate through paths, parse and validate them
     for (const providedPath of providedPaths) {
       // Logic for pushing coords to path when path includes google polyline
-      if (
-        providedPath.includes('enc:') &&
-        PATH_PATTERN.test(decodeURIComponent(providedPath))
-      ) {
+      if (providedPath.includes('enc:') && PATH_PATTERN.test(providedPath)) {
         // +4 because 'enc:' is 4 characters, everything after 'enc:' is considered to be part of the polyline
         const encIndex = providedPath.indexOf('enc:') + 4;
         const coords = polyline
@@ -432,7 +429,7 @@ const drawMarkers = async (ctx, markers, z) => {
  * @param {number} z Map zoom level.
  */
 const drawPath = (ctx, path, query, pathQuery, z) => {
-  const splitPaths = decodeURIComponent(pathQuery).split('|');
+  const splitPaths = pathQuery.split('|');
 
   if (!path || path.length < 2) {
     return null;
