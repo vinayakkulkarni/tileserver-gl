@@ -11,7 +11,7 @@ Just run ``docker run --rm -it -v $(pwd):/data -p 8080:8080 maptiler/tileserver-
 
 Additional options (see :doc:`/usage`) can be passed to the TileServer GL by appending them to the end of this command. You can, for example, do the following:
 
-* ``docker run ... maptiler/tileserver-gl --mbtiles my-tiles.mbtiles`` -- explicitly specify which mbtiles to use (if you have more in the folder)
+* ``docker run ... maptiler/tileserver-gl --file my-tiles.mbtiles`` -- explicitly specify which mbtiles to use (if you have more in the folder)
 * ``docker run ... maptiler/tileserver-gl --verbose`` -- to see the default config created automatically
 
 npm
