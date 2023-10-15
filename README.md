@@ -23,7 +23,7 @@ Once installed, you can use it like the following examples.
 using a mbtiles file
 ```bash
 wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles
-tileserver-gl --mbtiles zurich_switzerland.mbtiles
+tileserver-gl --file zurich_switzerland.mbtiles
 [in your browser, visit http://[server ip]:8080]
 ```
 
@@ -44,7 +44,7 @@ An alternative to npm to start the packed software easier is to install [Docker]
 Example using a mbtiles file
 ```bash
 wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles
-docker run --rm -it -v $(pwd):/data -p 8080:8080 maptiler/tileserver-gl --mbtiles zurich_switzerland.mbtiles
+docker run --rm -it -v $(pwd):/data -p 8080:8080 maptiler/tileserver-gl --file zurich_switzerland.mbtiles
 [in your browser, visit http://[server ip]:8080]
 ```
 
