@@ -110,20 +110,24 @@ export const serve_style = {
 
     for (const name of Object.keys(styleJSON.sources)) {
       const source = styleJSON.sources[name];
-      const url = source.url;
-      if (url && url.lastIndexOf('mbtiles:', 0) === 0) {
-        let mbtilesFile = url.substring('mbtiles://'.length);
-        const fromData =
-          mbtilesFile[0] === '{' && mbtilesFile[mbtilesFile.length - 1] === '}';
+      let url = source.url;
+      if (
+        url &&
+        (url.startsWith('pmtiles://') || url.startsWith('mbtiles://'))
+      ) {
+        const protocol = url.split(':')[0];
 
-        if (fromData) {
-          mbtilesFile = mbtilesFile.substr(1, mbtilesFile.length - 2);
-          const mapsTo = (params.mapping || {})[mbtilesFile];
-          if (mapsTo) {
-            mbtilesFile = mapsTo;
-          }
+        let dataId = url.replace('pmtiles://', '').replace('mbtiles://', '');
+        if (dataId.startsWith('{') && dataId.endsWith('}')) {
+          dataId = dataId.slice(1, -1);
         }
-        const identifier = reportTiles(mbtilesFile, fromData);
+
+        const mapsTo = (params.mapping || {})[dataId];
+        if (mapsTo) {
+          dataId = mapsTo;
+        }
+
+        const identifier = reportTiles(dataId, protocol);
         if (!identifier) {
           return false;
         }

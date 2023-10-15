@@ -2,7 +2,6 @@
 
 import path from 'path';
 import fs from 'node:fs';
-
 import clone from 'clone';
 import glyphCompose from '@mapbox/glyph-pbf-composite';
 
@@ -162,4 +161,16 @@ export const getFontsPbf = (
   }
 
   return Promise.all(queue).then((values) => glyphCompose.combine(values));
+};
+
+export const isValidHttpUrl = (string) => {
+  let url;
+
+  try {
+    url = new URL(string);
+  } catch (_) {
+    return false;
+  }
+
+  return url.protocol === 'http:' || url.protocol === 'https:';
 };

@@ -16,7 +16,8 @@ Example:
         "sprites": "sprites",
         "icons": "icons",
         "styles": "styles",
-        "mbtiles": ""
+        "mbtiles": "data",
+        "pmtiles": "data"
       },
       "domains": [
         "localhost:8080",
@@ -180,11 +181,27 @@ Each item in this object defines one style (map). It can have the following opti
 ``data``
 ========
 
-Each item specifies one data source which should be made accessible by the server. It has the following options:
+Each item specifies one data source which should be made accessible by the server. It has to have one of the following options:
 
-* ``mbtiles`` -- name of the mbtiles file [required]
+* ``mbtiles`` -- name of the mbtiles file
+* ``pmtiles`` -- name of the pmtiles file or url.
 
-The mbtiles file does not need to be specified here unless you explicitly want to serve the raw data.
+For example::
+
+  "data": {
+    "source1": {
+      "mbtiles": "source1.mbtiles"
+    },
+    "source2": {
+      "pmtiles": "source2.pmtiles"
+    },
+    "source3": {
+      "pmtiles": "https://foo.lan/source3.pmtiles"
+    }
+  }
+
+
+The data source does not need to be specified here unless you explicitly want to serve the raw data.
 
 Referencing local files from style JSON
 =======================================
@@ -194,21 +211,46 @@ You can link various data sources from the style JSON (for example even remote T
 MBTiles
 -------
 
-To specify that you want to use local mbtiles, use to following syntax: ``mbtiles://switzerland.mbtiles``.
-The TileServer-GL will try to find the file ``switzerland.mbtiles`` in ``root`` + ``mbtiles`` path.
+To specify that you want to use local mbtiles, use to following syntax: ``mbtiles://source1.mbtiles``.
+TileServer-GL will try to find the file ``source1.mbtiles`` in ``root`` + ``mbtiles`` path.
 
 For example::
 
   "sources": {
     "source1": {
-      "url": "mbtiles://switzerland.mbtiles",
+      "url": "mbtiles://source1.mbtiles",
       "type": "vector"
     }
   }
 
-Alternatively, you can use ``mbtiles://{zurich-vector}`` to reference existing data object from the config.
-In this case, the server will look into the ``config.json`` to determine what mbtiles file to use.
-For the config above, this is equivalent to ``mbtiles://zurich.mbtiles``.
+Alternatively, you can use ``mbtiles://{source1}`` to reference existing data object from the config.
+In this case, the server will look into the ``config.json`` to determine what file to use by data id.
+For the config above, this is equivalent to ``mbtiles://source1.mbtiles``.
+
+PMTiles
+-------
+
+To specify that you want to use local pmtiles, use to following syntax: ``pmtiles://source2.pmtiles``.
+TileServer-GL will try to find the file ``source2.pmtiles`` in ``root`` + ``pmtiles`` path.
+
+To specify that you want to use a url based pmtiles, use to following syntax: ``pmtiles://https://foo.lan/source3.pmtiles``.
+
+For example::
+
+  "sources": {
+    "source2": {
+      "url": "pmtiles://source2.pmtiles",
+      "type": "vector"
+    },
+    "source3": {
+      "url": "pmtiles://https://foo.lan/source3.pmtiles",
+      "type": "vector"
+    },
+  }
+
+Alternatively, you can use ``pmtiles://{source2}`` to reference existing data object from the config.
+In this case, the server will look into the ``config.json`` to determine what file to use by data id.
+For the config above, this is equivalent to ``pmtiles://source2.mbtiles``.
 
 Sprites
 -------
