@@ -47,7 +47,7 @@ WORKDIR /usr/src/app
 COPY package.json /usr/src/app
 COPY package-lock.json /usr/src/app
 
-RUN npm ci --omit=dev; \
+RUN npm install --omit=dev; \
     chown -R root:root /usr/src/app;
 
 FROM ubuntu:focal AS final
