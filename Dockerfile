@@ -8,8 +8,8 @@ RUN set -ex; \
     apt-get -y --no-install-recommends install \
       build-essential \
       ca-certificates \
-      curl
-      gnupg
+      curl \
+      gnupg \
       wget \
       pkg-config \
       xvfb \
