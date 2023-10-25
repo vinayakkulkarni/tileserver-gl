@@ -1,4 +1,4 @@
-FROM ubuntu:focal-20230126 AS builder
+FROM ubuntu:focal AS builder
 
 ENV NODE_ENV="production"
 
@@ -50,7 +50,7 @@ COPY package-lock.json /usr/src/app
 RUN npm install --omit=dev; \
     chown -R root:root /usr/src/app;
 
-FROM ubuntu:focal-20230126 AS final
+FROM ubuntu:focal AS final
 
 ENV \
     NODE_ENV="production" \
