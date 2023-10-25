@@ -8,6 +8,8 @@ RUN set -ex; \
     apt-get -y --no-install-recommends install \
       build-essential \
       ca-certificates \
+      curl
+      gnupg
       wget \
       pkg-config \
       xvfb \
@@ -26,13 +28,16 @@ RUN set -ex; \
       libcurl4-openssl-dev \
       libpixman-1-dev \
       libpixman-1-0; \
-      apt-get -y --purge autoremove; \
-      apt-get clean; \
-      rm -rf /var/lib/apt/lists/*;
+    apt-get -y --purge autoremove; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*; \
+    sudo mkdir -p /etc/apt/keyrings; \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg;
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN wget -qO- https://deb.nodesource.com/setup_18.x | bash; \
+RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list; \
+    apt-get -qq update; \
     apt-get install -y nodejs; \
     npm i -g npm@latest; \
     apt-get -y remove wget; \
