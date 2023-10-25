@@ -51,7 +51,7 @@ WORKDIR /usr/src/app
 COPY package.json /usr/src/app
 COPY package-lock.json /usr/src/app
 
-RUN npm install --omit=dev; \
+RUN npm install --omit=dev --noproxy registry.npmjs.org --maxsockets 1; \
     chown -R root:root /usr/src/app;
 
 FROM ubuntu:focal AS final
