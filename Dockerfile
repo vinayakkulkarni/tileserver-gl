@@ -10,7 +10,6 @@ RUN set -ex; \
       ca-certificates \
       curl \
       gnupg \
-      wget \
       pkg-config \
       xvfb \
       libglfw3-dev \
@@ -31,16 +30,16 @@ RUN set -ex; \
     apt-get -y --purge autoremove; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*; \
-    mkdir -p /etc/apt/keyrings; \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg;
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list; \
+RUN mkdir -p /etc/apt/keyrings; \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg;
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list; \
     apt-get -qq update; \
     apt-get install -y nodejs; \
     npm i -g npm@latest; \
-    apt-get -y remove wget; \
+    apt-get -y remove curl; \
     apt-get -y --purge autoremove; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*;
