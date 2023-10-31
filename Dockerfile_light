@@ -38,6 +38,7 @@ WORKDIR /data
 COPY / /usr/src/app
 
 RUN cd /usr/src/app; \
+    npm config set maxsockets 1; \
     npm config set fetch-retries 5; \
     npm config set fetch-retry-mintimeout 100000; \
     npm config set fetch-retry-maxtimeout 600000; \
