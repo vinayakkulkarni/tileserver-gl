@@ -51,7 +51,10 @@ WORKDIR /usr/src/app
 COPY package.json /usr/src/app
 COPY package-lock.json /usr/src/app
 
-RUN npm install --omit=dev --noproxy registry.npmjs.org --maxsockets 1; \
+RUN npm config set fetch-retries 5; \
+    npm config set fetch-retry-mintimeout 100000; \
+    npm config set fetch-retry-maxtimeout 600000; \
+    npm ci --omit=dev; \
     chown -R root:root /usr/src/app;
 
 FROM ubuntu:focal AS final
