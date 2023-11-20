@@ -141,11 +141,8 @@ function start(opts) {
 
   // Load all available icons into a settings object
   startupPromises.push(
-    new Promise((resolve) => {
-      getFiles(paths.icons).then((files) => {
-        paths.availableIcons = files;
-        resolve();
-      });
+    getFiles(paths.icons).then((files) => {
+      paths.availableIcons = files;
     }),
   );
 

@@ -241,7 +241,7 @@ const StartWithInputFile = async (inputFile) => {
   }
 };
 
-fs.stat(path.resolve(opts.config), (err, stats) => {
+fs.stat(path.resolve(opts.config), async (err, stats) => {
   if (err || !stats.isFile() || stats.size === 0) {
     let inputFile;
     if (opts.file) {
@@ -274,21 +274,22 @@ fs.stat(path.resolve(opts.config), (err, stats) => {
         const writer = fs.createWriteStream(filename);
         console.log(`No input file found`);
         console.log(`[DEMO] Downloading sample data (${filename}) from ${url}`);
-        axios({
-          url,
-          method: 'GET',
-          responseType: 'stream',
-        })
-          .then((response) => {
-            response.data.pipe(writer);
-            writer.on('finish', () => StartWithInputFile(filename));
-            writer.on('error', (err) =>
-              console.error(`Error writing file: ${err}`),
-            );
-          })
-          .catch((error) => {
-            console.error(`Error downloading file: ${error}`);
+
+        try {
+          const response = await axios({
+            url,
+            method: 'GET',
+            responseType: 'stream',
           });
+
+          response.data.pipe(writer);
+          writer.on('finish', () => StartWithInputFile(filename));
+          writer.on('error', (err) =>
+            console.error(`Error writing file: ${err}`),
+          );
+        } catch (error) {
+          console.error(`Error downloading file: ${error}`);
+        }
       }
     }
   } else {

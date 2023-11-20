@@ -524,7 +524,7 @@ const existingFonts = {};
 let maxScaleFactor = 2;
 
 export const serve_rendered = {
-  init: (options, repo) => {
+  init: async (options, repo) => {
     maxScaleFactor = Math.min(Math.floor(options.maxScaleFactor || 3), 9);
     let scalePattern = '';
     for (let i = 2; i <= maxScaleFactor; i++) {
@@ -909,10 +909,9 @@ export const serve_rendered = {
       return res.send(info);
     });
 
-    return listFonts(options.paths.fonts).then((fonts) => {
-      Object.assign(existingFonts, fonts);
-      return app;
-    });
+    const fonts = await listFonts(options.paths.fonts);
+    Object.assign(existingFonts, fonts);
+    return app;
   },
   add: async (options, repo, params, id, publicUrl, dataResolver) => {
     const map = {
@@ -941,20 +940,19 @@ export const serve_rendered = {
               const parts = req.url.split('/');
               const fontstack = unescape(parts[2]);
               const range = parts[3].split('.')[0];
-              getFontsPbf(
-                null,
-                options.paths[protocol],
-                fontstack,
-                range,
-                existingFonts,
-              ).then(
-                (concated) => {
-                  callback(null, { data: concated });
-                },
-                (err) => {
-                  callback(err, { data: null });
-                },
-              );
+
+              try {
+                const concatenated = await getFontsPbf(
+                  null,
+                  options.paths[protocol],
+                  fontstack,
+                  range,
+                  existingFonts,
+                );
+                callback(null, { data: concatenated });
+              } catch (err) {
+                callback(err, { data: null });
+              }
             } else if (protocol === 'mbtiles' || protocol === 'pmtiles') {
               const parts = req.url.split('/');
               const sourceId = parts[2];
@@ -1296,26 +1294,24 @@ export const serve_rendered = {
       }
     }
 
-    const renderersReadyPromise = Promise.all(queue).then(() => {
-      // standard and @2x tiles are much more usual -> default to larger pools
-      const minPoolSizes = options.minRendererPoolSizes || [8, 4, 2];
-      const maxPoolSizes = options.maxRendererPoolSizes || [16, 8, 4];
-      for (let s = 1; s <= maxScaleFactor; s++) {
-        const i = Math.min(minPoolSizes.length - 1, s - 1);
-        const j = Math.min(maxPoolSizes.length - 1, s - 1);
-        const minPoolSize = minPoolSizes[i];
-        const maxPoolSize = Math.max(minPoolSize, maxPoolSizes[j]);
-        map.renderers[s] = createPool(s, 'tile', minPoolSize, maxPoolSize);
-        map.renderers_static[s] = createPool(
-          s,
-          'static',
-          minPoolSize,
-          maxPoolSize,
-        );
-      }
-    });
+    await Promise.all(queue);
 
-    return renderersReadyPromise;
+    // standard and @2x tiles are much more usual -> default to larger pools
+    const minPoolSizes = options.minRendererPoolSizes || [8, 4, 2];
+    const maxPoolSizes = options.maxRendererPoolSizes || [16, 8, 4];
+    for (let s = 1; s <= maxScaleFactor; s++) {
+      const i = Math.min(minPoolSizes.length - 1, s - 1);
+      const j = Math.min(maxPoolSizes.length - 1, s - 1);
+      const minPoolSize = minPoolSizes[i];
+      const maxPoolSize = Math.max(minPoolSize, maxPoolSizes[j]);
+      map.renderers[s] = createPool(s, 'tile', minPoolSize, maxPoolSize);
+      map.renderers_static[s] = createPool(
+        s,
+        'static',
+        minPoolSize,
+        maxPoolSize,
+      );
+    }
   },
   remove: (repo, id) => {
     const item = repo[id];
