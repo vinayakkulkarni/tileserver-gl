@@ -573,19 +573,10 @@ export const serve_rendered = {
           ],
           z,
         );
+
+        // prettier-ignore
         return respondImage(
-          options,
-          item,
-          z,
-          tileCenter[0],
-          tileCenter[1],
-          0,
-          0,
-          tileSize,
-          tileSize,
-          scale,
-          format,
-          res,
+          options, item, z, tileCenter[0], tileCenter[1], 0, 0, tileSize, tileSize, scale, format, res,
         );
       },
     );
@@ -641,35 +632,15 @@ export const serve_rendered = {
               options,
               transformer,
             );
+
+            // prettier-ignore
             const overlay = await renderOverlay(
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              paths,
-              markers,
-              req.query,
+              z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query,
             );
 
+            // prettier-ignore
             return respondImage(
-              options,
-              item,
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              format,
-              res,
-              overlay,
-              'static',
+              options, item, z, x, y, bearing, pitch, w, h, scale, format, res, overlay, 'static',
             );
           } catch (e) {
             next(e);
@@ -723,34 +694,15 @@ export const serve_rendered = {
             options,
             transformer,
           );
+
+          // prettier-ignore
           const overlay = await renderOverlay(
-            z,
-            x,
-            y,
-            bearing,
-            pitch,
-            w,
-            h,
-            scale,
-            paths,
-            markers,
-            req.query,
+            z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query,
           );
+
+          // prettier-ignore
           return respondImage(
-            options,
-            item,
-            z,
-            x,
-            y,
-            bearing,
-            pitch,
-            w,
-            h,
-            scale,
-            format,
-            res,
-            overlay,
-            'static',
+            options, item, z, x, y, bearing, pitch, w, h, scale, format, res, overlay, 'static',
           );
         } catch (e) {
           next(e);
@@ -856,35 +808,14 @@ export const serve_rendered = {
             const x = center[0];
             const y = center[1];
 
+            // prettier-ignore
             const overlay = await renderOverlay(
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              paths,
-              markers,
-              req.query,
+              z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query,
             );
 
+            // prettier-ignore
             return respondImage(
-              options,
-              item,
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              format,
-              res,
-              overlay,
-              'static',
+              options, item, z, x, y, bearing, pitch, w, h, scale, format, res, overlay, 'static',
             );
           } catch (e) {
             next(e);
