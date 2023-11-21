@@ -253,7 +253,7 @@ function start(opts) {
                 inputFile = path.resolve(options.paths[fileType], inputFile);
               }
 
-              return { inputfile: inputFile, filetype: fileType };
+              return { inputFile, fileType };
             },
           ),
         );
@@ -344,7 +344,7 @@ function start(opts) {
       result.push({
         version: styleJSON.version,
         name: styleJSON.name,
-        id: id,
+        id,
         url: `${getPublicUrl(
           opts.publicUrl,
           req,
@@ -630,9 +630,9 @@ function start(opts) {
   enableShutdown(server);
 
   return {
-    app: app,
-    server: server,
-    startupPromise: startupPromise,
+    app,
+    server,
+    startupPromise,
   };
 }
 

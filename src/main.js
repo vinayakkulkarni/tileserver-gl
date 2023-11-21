@@ -68,8 +68,8 @@ const StartServer = (configPath, config) => {
     publicUrl += '/';
   }
   return server({
-    configPath: configPath,
-    config: config,
+    configPath,
+    config,
     bind: opts.bind,
     port: opts.port,
     cors: opts.cors,
@@ -77,7 +77,7 @@ const StartServer = (configPath, config) => {
     silent: opts.silent,
     logFile: opts.log_file,
     logFormat: opts.log_format,
-    publicUrl: publicUrl,
+    publicUrl,
   });
 };
 
@@ -215,7 +215,7 @@ const StartWithInputFile = async (inputFile) => {
               config['styles'][styleName] = {
                 style: styleFileRel,
                 tilejson: {
-                  bounds: bounds,
+                  bounds,
                 },
               };
             }

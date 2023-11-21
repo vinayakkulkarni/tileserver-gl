@@ -97,7 +97,7 @@ function createEmptyResponse(format, color, callback) {
     raw: {
       width: 1,
       height: 1,
-      channels: channels,
+      channels,
     },
   })
     .toFormat(format)
@@ -405,10 +405,10 @@ const respondImage = (
     const params = {
       zoom: mlglZ,
       center: [lon, lat],
-      bearing: bearing,
-      pitch: pitch,
-      width: width,
-      height: height,
+      bearing,
+      pitch,
+      width,
+      height,
     };
 
     if (z === 0) {
@@ -856,8 +856,8 @@ export const serve_rendered = {
     const createPool = (ratio, mode, min, max) => {
       const createRenderer = (ratio, createCallback) => {
         const renderer = new mlgl.Map({
-          mode: mode,
-          ratio: ratio,
+          mode,
+          ratio,
           request: async (req, callback) => {
             const protocol = req.url.split(':')[0];
             // console.log('Handling request:', req);
@@ -1016,8 +1016,8 @@ export const serve_rendered = {
         createCallback(null, renderer);
       };
       return new advancedPool.Pool({
-        min: min,
-        max: max,
+        min,
+        max,
         create: createRenderer.bind(null, ratio),
         destroy: (renderer) => {
           renderer.release();
@@ -1114,9 +1114,9 @@ export const serve_rendered = {
 
         let inputFile;
         const DataInfo = dataResolver(dataId);
-        if (DataInfo.inputfile) {
-          inputFile = DataInfo.inputfile;
-          source_type = DataInfo.filetype;
+        if (DataInfo.inputFile) {
+          inputFile = DataInfo.inputFile;
+          source_type = DataInfo.fileType;
         } else {
           console.error(`ERROR: data "${inputFile}" not found!`);
           process.exit(1);
