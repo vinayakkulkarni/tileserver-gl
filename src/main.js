@@ -9,7 +9,7 @@ import axios from 'axios';
 import { server } from './server.js';
 import MBTiles from '@mapbox/mbtiles';
 import { isValidHttpUrl } from './utils.js';
-import { PMtilesOpen, GetPMtilesInfo } from './pmtiles_adapter.js';
+import { openPMtiles, getPMtilesInfo } from './pmtiles_adapter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,7 +62,7 @@ const opts = program.opts();
 
 console.log(`Starting ${packageJson.name} v${packageJson.version}`);
 
-const StartServer = (configPath, config) => {
+const startServer = (configPath, config) => {
   let publicUrl = opts.public_url;
   if (publicUrl && publicUrl.lastIndexOf('/') !== publicUrl.length - 1) {
     publicUrl += '/';
@@ -81,7 +81,7 @@ const StartServer = (configPath, config) => {
   });
 };
 
-const StartWithInputFile = async (inputFile) => {
+const startWithInputFile = async (inputFile) => {
   console.log(`[INFO] Automatically creating config file for ${inputFile}`);
   console.log(`[INFO] Only a basic preview style will be used.`);
   console.log(
@@ -123,8 +123,8 @@ const StartWithInputFile = async (inputFile) => {
 
   const extension = inputFile.split('.').pop().toLowerCase();
   if (extension === 'pmtiles') {
-    let FileOpenInfo = PMtilesOpen(inputFile);
-    const metadata = await GetPMtilesInfo(FileOpenInfo);
+    const fileOpenInfo = openPMtiles(inputFile);
+    const metadata = await getPMtilesInfo(fileOpenInfo);
 
     if (
       metadata.format === 'pbf' &&
@@ -174,7 +174,7 @@ const StartWithInputFile = async (inputFile) => {
       console.log('Run with --verbose to see the config file here.');
     }
 
-    return StartServer(null, config);
+    return startServer(null, config);
   } else {
     if (isValidHttpUrl(inputFile)) {
       console.log(
@@ -235,7 +235,7 @@ const StartWithInputFile = async (inputFile) => {
           console.log('Run with --verbose to see the config file here.');
         }
 
-        return StartServer(null, config);
+        return startServer(null, config);
       });
     });
   }
@@ -251,7 +251,7 @@ fs.stat(path.resolve(opts.config), async (err, stats) => {
     }
 
     if (inputFile) {
-      return StartWithInputFile(inputFile);
+      return startWithInputFile(inputFile);
     } else {
       // try to find in the cwd
       const files = fs.readdirSync(process.cwd());
@@ -266,7 +266,7 @@ fs.stat(path.resolve(opts.config), async (err, stats) => {
       }
       if (inputFile) {
         console.log(`No input file specified, using ${inputFile}`);
-        return StartWithInputFile(inputFile);
+        return startWithInputFile(inputFile);
       } else {
         const url =
           'https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles';
@@ -283,7 +283,7 @@ fs.stat(path.resolve(opts.config), async (err, stats) => {
           });
 
           response.data.pipe(writer);
-          writer.on('finish', () => StartWithInputFile(filename));
+          writer.on('finish', () => startWithInputFile(filename));
           writer.on('error', (err) =>
             console.error(`Error writing file: ${err}`),
           );
@@ -294,6 +294,6 @@ fs.stat(path.resolve(opts.config), async (err, stats) => {
     }
   } else {
     console.log(`Using specified config file from ${opts.config}`);
-    return StartServer(opts.config, null);
+    return startServer(opts.config, null);
   }
 });

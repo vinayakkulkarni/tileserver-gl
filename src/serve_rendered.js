@@ -25,9 +25,9 @@ import {
   fixTileJSONCenter,
 } from './utils.js';
 import {
-  PMtilesOpen,
-  GetPMtilesInfo,
-  GetPMtilesTile,
+  openPMtiles,
+  getPMtilesInfo,
+  getPMtilesTile,
 } from './pmtiles_adapter.js';
 import { renderOverlay, renderWatermark, renderAttribution } from './render.js';
 
@@ -398,7 +398,7 @@ const respondImage = (
   if (mode === 'tile' && tileMargin === 0) {
     pool = item.map.renderers[scale];
   } else {
-    pool = item.map.renderers_static[scale];
+    pool = item.map.renderersStatic[scale];
   }
   pool.acquire((err, renderer) => {
     const mlglZ = Math.max(0, z - 1);
@@ -471,14 +471,14 @@ const respondImage = (
         image.resize(width * scale, height * scale);
       }
 
-      const composite_array = [];
+      const composites = [];
       if (overlay) {
-        composite_array.push({ input: overlay });
+        composites.push({ input: overlay });
       }
       if (item.watermark) {
         const canvas = renderWatermark(width, height, scale, item.watermark);
 
-        composite_array.push({ input: canvas.toBuffer() });
+        composites.push({ input: canvas.toBuffer() });
       }
 
       if (mode === 'static' && item.staticAttributionText) {
@@ -489,11 +489,11 @@ const respondImage = (
           item.staticAttributionText,
         );
 
-        composite_array.push({ input: canvas.toBuffer() });
+        composites.push({ input: canvas.toBuffer() });
       }
 
-      if (composite_array.length > 0) {
-        image.composite(composite_array);
+      if (composites.length > 0) {
+        image.composite(composites);
       }
 
       const formatQuality = (options.formatQuality || {})[format];
@@ -847,9 +847,9 @@ export const serve_rendered = {
   add: async (options, repo, params, id, publicUrl, dataResolver) => {
     const map = {
       renderers: [],
-      renderers_static: [],
+      renderersStatic: [],
       sources: {},
-      source_types: {},
+      sourceTypes: {},
     };
 
     let styleJSON;
@@ -888,7 +888,7 @@ export const serve_rendered = {
               const parts = req.url.split('/');
               const sourceId = parts[2];
               const source = map.sources[sourceId];
-              const source_type = map.source_types[sourceId];
+              const sourceType = map.sourceTypes[sourceId];
               const sourceInfo = styleJSON.sources[sourceId];
 
               const z = parts[3] | 0;
@@ -896,8 +896,8 @@ export const serve_rendered = {
               const y = parts[5].split('.')[0] | 0;
               const format = parts[5].split('.')[1];
 
-              if (source_type === 'pmtiles') {
-                let tileinfo = await GetPMtilesTile(source, z, x, y);
+              if (sourceType === 'pmtiles') {
+                let tileinfo = await getPMtilesTile(source, z, x, y);
                 let data = tileinfo.data;
                 let headers = tileinfo.header;
                 if (data == undefined) {
@@ -931,7 +931,7 @@ export const serve_rendered = {
 
                   callback(null, response);
                 }
-              } else if (source_type === 'mbtiles') {
+              } else if (sourceType === 'mbtiles') {
                 source.getTile(z, x, y, (err, data, headers) => {
                   if (err) {
                     if (options.verbose)
@@ -1092,7 +1092,7 @@ export const serve_rendered = {
 
     const queue = [];
     for (const name of Object.keys(styleJSON.sources)) {
-      let source_type;
+      let sourceType;
       let source = styleJSON.sources[name];
       let url = source.url;
       if (
@@ -1113,10 +1113,10 @@ export const serve_rendered = {
         }
 
         let inputFile;
-        const DataInfo = dataResolver(dataId);
-        if (DataInfo.inputFile) {
-          inputFile = DataInfo.inputFile;
-          source_type = DataInfo.fileType;
+        const dataInfo = dataResolver(dataId);
+        if (dataInfo.inputFile) {
+          inputFile = dataInfo.inputFile;
+          sourceType = dataInfo.fileType;
         } else {
           console.error(`ERROR: data "${inputFile}" not found!`);
           process.exit(1);
@@ -1129,10 +1129,10 @@ export const serve_rendered = {
           }
         }
 
-        if (source_type === 'pmtiles') {
-          map.sources[name] = PMtilesOpen(inputFile);
-          map.source_types[name] = 'pmtiles';
-          const metadata = await GetPMtilesInfo(map.sources[name]);
+        if (sourceType === 'pmtiles') {
+          map.sources[name] = openPMtiles(inputFile);
+          map.sourceTypes[name] = 'pmtiles';
+          const metadata = await getPMtilesInfo(map.sources[name]);
 
           if (!repoobj.dataProjWGStoInternalWGS && metadata.proj4) {
             // how to do this for multiple sources with different proj4 defs?
@@ -1177,7 +1177,7 @@ export const serve_rendered = {
                     console.error(err);
                     return;
                   }
-                  map.source_types[name] = 'mbtiles';
+                  map.sourceTypes[name] = 'mbtiles';
 
                   if (!repoobj.dataProjWGStoInternalWGS && info.proj4) {
                     // how to do this for multiple sources with different proj4 defs?
@@ -1236,7 +1236,7 @@ export const serve_rendered = {
       const minPoolSize = minPoolSizes[i];
       const maxPoolSize = Math.max(minPoolSize, maxPoolSizes[j]);
       map.renderers[s] = createPool(s, 'tile', minPoolSize, maxPoolSize);
-      map.renderers_static[s] = createPool(
+      map.renderersStatic[s] = createPool(
         s,
         'static',
         minPoolSize,
@@ -1250,7 +1250,7 @@ export const serve_rendered = {
       item.map.renderers.forEach((pool) => {
         pool.close();
       });
-      item.map.renderers_static.forEach((pool) => {
+      item.map.renderersStatic.forEach((pool) => {
         pool.close();
       });
     }
