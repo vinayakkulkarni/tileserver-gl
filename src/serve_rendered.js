@@ -37,9 +37,9 @@ import {
   fixTileJSONCenter,
 } from './utils.js';
 import {
-  PMtilesOpen,
-  GetPMtilesInfo,
-  GetPMtilesTile,
+  openPMtiles,
+  getPMtilesInfo,
+  getPMtilesTile,
 } from './pmtiles_adapter.js';
 import { renderOverlay, renderWatermark, renderAttribution } from './render.js';
 
@@ -109,7 +109,7 @@ function createEmptyResponse(format, color, callback) {
     raw: {
       width: 1,
       height: 1,
-      channels: channels,
+      channels,
     },
   })
     .toFormat(format)
@@ -410,17 +410,17 @@ const respondImage = (
   if (mode === 'tile' && tileMargin === 0) {
     pool = item.map.renderers[scale];
   } else {
-    pool = item.map.renderers_static[scale];
+    pool = item.map.renderersStatic[scale];
   }
   pool.acquire((err, renderer) => {
     const mlglZ = Math.max(0, z - 1);
     const params = {
       zoom: mlglZ,
       center: [lon, lat],
-      bearing: bearing,
-      pitch: pitch,
-      width: width,
-      height: height,
+      bearing,
+      pitch,
+      width,
+      height,
     };
 
     if (z === 0) {
@@ -468,14 +468,14 @@ const respondImage = (
         image.resize(width * scale, height * scale);
       }
 
-      const composite_array = [];
+      const composites = [];
       if (overlay) {
-        composite_array.push({ input: overlay });
+        composites.push({ input: overlay });
       }
       if (item.watermark) {
         const canvas = renderWatermark(width, height, scale, item.watermark);
 
-        composite_array.push({ input: canvas.toBuffer() });
+        composites.push({ input: canvas.toBuffer() });
       }
 
       if (mode === 'static' && item.staticAttributionText) {
@@ -486,11 +486,11 @@ const respondImage = (
           item.staticAttributionText,
         );
 
-        composite_array.push({ input: canvas.toBuffer() });
+        composites.push({ input: canvas.toBuffer() });
       }
 
-      if (composite_array.length > 0) {
-        image.composite(composite_array);
+      if (composites.length > 0) {
+        image.composite(composites);
       }
 
       const formatQuality = (options.formatQuality || {})[format];
@@ -521,7 +521,7 @@ const existingFonts = {};
 let maxScaleFactor = 2;
 
 export const serve_rendered = {
-  init: (options, repo) => {
+  init: async (options, repo) => {
     maxScaleFactor = Math.min(Math.floor(options.maxScaleFactor || 3), 9);
     let scalePattern = '';
     for (let i = 2; i <= maxScaleFactor; i++) {
@@ -570,19 +570,10 @@ export const serve_rendered = {
           ],
           z,
         );
+
+        // prettier-ignore
         return respondImage(
-          options,
-          item,
-          z,
-          tileCenter[0],
-          tileCenter[1],
-          0,
-          0,
-          tileSize,
-          tileSize,
-          scale,
-          format,
-          res,
+          options, item, z, tileCenter[0], tileCenter[1], 0, 0, tileSize, tileSize, scale, format, res,
         );
       },
     );
@@ -638,35 +629,15 @@ export const serve_rendered = {
               options,
               transformer,
             );
+
+            // prettier-ignore
             const overlay = await renderOverlay(
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              paths,
-              markers,
-              req.query,
+              z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query,
             );
 
+            // prettier-ignore
             return respondImage(
-              options,
-              item,
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              format,
-              res,
-              overlay,
-              'static',
+              options, item, z, x, y, bearing, pitch, w, h, scale, format, res, overlay, 'static',
             );
           } catch (e) {
             next(e);
@@ -720,34 +691,15 @@ export const serve_rendered = {
             options,
             transformer,
           );
+
+          // prettier-ignore
           const overlay = await renderOverlay(
-            z,
-            x,
-            y,
-            bearing,
-            pitch,
-            w,
-            h,
-            scale,
-            paths,
-            markers,
-            req.query,
+            z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query,
           );
+
+          // prettier-ignore
           return respondImage(
-            options,
-            item,
-            z,
-            x,
-            y,
-            bearing,
-            pitch,
-            w,
-            h,
-            scale,
-            format,
-            res,
-            overlay,
-            'static',
+            options, item, z, x, y, bearing, pitch, w, h, scale, format, res, overlay, 'static',
           );
         } catch (e) {
           next(e);
@@ -853,35 +805,14 @@ export const serve_rendered = {
             const x = center[0];
             const y = center[1];
 
+            // prettier-ignore
             const overlay = await renderOverlay(
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              paths,
-              markers,
-              req.query,
+              z, x, y, bearing, pitch, w, h, scale, paths, markers, req.query,
             );
 
+            // prettier-ignore
             return respondImage(
-              options,
-              item,
-              z,
-              x,
-              y,
-              bearing,
-              pitch,
-              w,
-              h,
-              scale,
-              format,
-              res,
-              overlay,
-              'static',
+              options, item, z, x, y, bearing, pitch, w, h, scale, format, res, overlay, 'static',
             );
           } catch (e) {
             next(e);
@@ -906,25 +837,24 @@ export const serve_rendered = {
       return res.send(info);
     });
 
-    return listFonts(options.paths.fonts).then((fonts) => {
-      Object.assign(existingFonts, fonts);
-      return app;
-    });
+    const fonts = await listFonts(options.paths.fonts);
+    Object.assign(existingFonts, fonts);
+    return app;
   },
   add: async (options, repo, params, id, publicUrl, dataResolver) => {
     const map = {
       renderers: [],
-      renderers_static: [],
+      renderersStatic: [],
       sources: {},
-      source_types: {},
+      sourceTypes: {},
     };
 
     let styleJSON;
     const createPool = (ratio, mode, min, max) => {
       const createRenderer = (ratio, createCallback) => {
         const renderer = new mlgl.Map({
-          mode: mode,
-          ratio: ratio,
+          mode,
+          ratio,
           request: async (req, callback) => {
             const protocol = req.url.split(':')[0];
             // console.log('Handling request:', req);
@@ -938,25 +868,24 @@ export const serve_rendered = {
               const parts = req.url.split('/');
               const fontstack = unescape(parts[2]);
               const range = parts[3].split('.')[0];
-              getFontsPbf(
-                null,
-                options.paths[protocol],
-                fontstack,
-                range,
-                existingFonts,
-              ).then(
-                (concated) => {
-                  callback(null, { data: concated });
-                },
-                (err) => {
-                  callback(err, { data: null });
-                },
-              );
+
+              try {
+                const concatenated = await getFontsPbf(
+                  null,
+                  options.paths[protocol],
+                  fontstack,
+                  range,
+                  existingFonts,
+                );
+                callback(null, { data: concatenated });
+              } catch (err) {
+                callback(err, { data: null });
+              }
             } else if (protocol === 'mbtiles' || protocol === 'pmtiles') {
               const parts = req.url.split('/');
               const sourceId = parts[2];
               const source = map.sources[sourceId];
-              const source_type = map.source_types[sourceId];
+              const sourceType = map.sourceTypes[sourceId];
               const sourceInfo = styleJSON.sources[sourceId];
 
               const z = parts[3] | 0;
@@ -964,8 +893,8 @@ export const serve_rendered = {
               const y = parts[5].split('.')[0] | 0;
               const format = parts[5].split('.')[1];
 
-              if (source_type === 'pmtiles') {
-                let tileinfo = await GetPMtilesTile(source, z, x, y);
+              if (sourceType === 'pmtiles') {
+                let tileinfo = await getPMtilesTile(source, z, x, y);
                 let data = tileinfo.data;
                 let headers = tileinfo.header;
                 if (data == undefined) {
@@ -999,7 +928,7 @@ export const serve_rendered = {
 
                   callback(null, response);
                 }
-              } else if (source_type === 'mbtiles') {
+              } else if (sourceType === 'mbtiles') {
                 source.getTile(z, x, y, (err, data, headers) => {
                   if (err) {
                     if (options.verbose)
@@ -1084,8 +1013,8 @@ export const serve_rendered = {
         createCallback(null, renderer);
       };
       return new advancedPool.Pool({
-        min: min,
-        max: max,
+        min,
+        max,
         create: createRenderer.bind(null, ratio),
         destroy: (renderer) => {
           renderer.release();
@@ -1160,7 +1089,7 @@ export const serve_rendered = {
 
     const queue = [];
     for (const name of Object.keys(styleJSON.sources)) {
-      let source_type;
+      let sourceType;
       let source = styleJSON.sources[name];
       let url = source.url;
       if (
@@ -1181,10 +1110,10 @@ export const serve_rendered = {
         }
 
         let inputFile;
-        const DataInfo = dataResolver(dataId);
-        if (DataInfo.inputfile) {
-          inputFile = DataInfo.inputfile;
-          source_type = DataInfo.filetype;
+        const dataInfo = dataResolver(dataId);
+        if (dataInfo.inputFile) {
+          inputFile = dataInfo.inputFile;
+          sourceType = dataInfo.fileType;
         } else {
           console.error(`ERROR: data "${inputFile}" not found!`);
           process.exit(1);
@@ -1197,10 +1126,10 @@ export const serve_rendered = {
           }
         }
 
-        if (source_type === 'pmtiles') {
-          map.sources[name] = PMtilesOpen(inputFile);
-          map.source_types[name] = 'pmtiles';
-          const metadata = await GetPMtilesInfo(map.sources[name]);
+        if (sourceType === 'pmtiles') {
+          map.sources[name] = openPMtiles(inputFile);
+          map.sourceTypes[name] = 'pmtiles';
+          const metadata = await getPMtilesInfo(map.sources[name]);
 
           if (!repoobj.dataProjWGStoInternalWGS && metadata.proj4) {
             // how to do this for multiple sources with different proj4 defs?
@@ -1245,7 +1174,7 @@ export const serve_rendered = {
                     console.error(err);
                     return;
                   }
-                  map.source_types[name] = 'mbtiles';
+                  map.sourceTypes[name] = 'mbtiles';
 
                   if (!repoobj.dataProjWGStoInternalWGS && info.proj4) {
                     // how to do this for multiple sources with different proj4 defs?
@@ -1293,26 +1222,24 @@ export const serve_rendered = {
       }
     }
 
-    const renderersReadyPromise = Promise.all(queue).then(() => {
-      // standard and @2x tiles are much more usual -> default to larger pools
-      const minPoolSizes = options.minRendererPoolSizes || [8, 4, 2];
-      const maxPoolSizes = options.maxRendererPoolSizes || [16, 8, 4];
-      for (let s = 1; s <= maxScaleFactor; s++) {
-        const i = Math.min(minPoolSizes.length - 1, s - 1);
-        const j = Math.min(maxPoolSizes.length - 1, s - 1);
-        const minPoolSize = minPoolSizes[i];
-        const maxPoolSize = Math.max(minPoolSize, maxPoolSizes[j]);
-        map.renderers[s] = createPool(s, 'tile', minPoolSize, maxPoolSize);
-        map.renderers_static[s] = createPool(
-          s,
-          'static',
-          minPoolSize,
-          maxPoolSize,
-        );
-      }
-    });
+    await Promise.all(queue);
 
-    return renderersReadyPromise;
+    // standard and @2x tiles are much more usual -> default to larger pools
+    const minPoolSizes = options.minRendererPoolSizes || [8, 4, 2];
+    const maxPoolSizes = options.maxRendererPoolSizes || [16, 8, 4];
+    for (let s = 1; s <= maxScaleFactor; s++) {
+      const i = Math.min(minPoolSizes.length - 1, s - 1);
+      const j = Math.min(maxPoolSizes.length - 1, s - 1);
+      const minPoolSize = minPoolSizes[i];
+      const maxPoolSize = Math.max(minPoolSize, maxPoolSizes[j]);
+      map.renderers[s] = createPool(s, 'tile', minPoolSize, maxPoolSize);
+      map.renderersStatic[s] = createPool(
+        s,
+        'static',
+        minPoolSize,
+        maxPoolSize,
+      );
+    }
   },
   remove: (repo, id) => {
     const item = repo[id];
@@ -1320,7 +1247,7 @@ export const serve_rendered = {
       item.map.renderers.forEach((pool) => {
         pool.close();
       });
-      item.map.renderers_static.forEach((pool) => {
+      item.map.renderersStatic.forEach((pool) => {
         pool.close();
       });
     }

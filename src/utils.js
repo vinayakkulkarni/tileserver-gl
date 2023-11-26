@@ -140,7 +140,7 @@ const getFontPbf = (allowedFonts, fontPath, name, range, fallbacks) =>
     }
   });
 
-export const getFontsPbf = (
+export const getFontsPbf = async (
   allowedFonts,
   fontPath,
   names,
@@ -161,7 +161,8 @@ export const getFontsPbf = (
     );
   }
 
-  return Promise.all(queue).then((values) => glyphCompose.combine(values));
+  const values = await Promise.all(queue);
+  return glyphCompose.combine(values);
 };
 
 export const listFonts = async (fontPath) => {
