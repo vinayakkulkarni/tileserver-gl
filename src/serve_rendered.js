@@ -1,12 +1,24 @@
 'use strict';
 
+// SECTION START
+//
+// The order of the two imports below is important.
+// For an unknown reason, if the order is reversed, rendering can crash.
+// This happens on ARM:
+//  > terminate called after throwing an instance of 'std::runtime_error'
+//  > what():  Cannot read GLX extensions.
+import 'canvas';
+import '@maplibre/maplibre-gl-native';
+//
+// SECTION END
+
 import advancedPool from 'advanced-pool';
 import fs from 'node:fs';
 import path from 'path';
 import url from 'url';
 import util from 'util';
 import zlib from 'zlib';
-import sharp from 'sharp'; // sharp has to be required before node-canvas on linux but after it on windows. see https://github.com/lovell/sharp/issues/371
+import sharp from 'sharp';
 import clone from 'clone';
 import Color from 'color';
 import express from 'express';
@@ -428,24 +440,9 @@ const respondImage = (
         return res.status(500).header('Content-Type', 'text/plain').send(err);
       }
 
-      // Fix semi-transparent outlines on raw, premultiplied input
-      // https://github.com/maptiler/tileserver-gl/issues/350#issuecomment-477857040
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
-        const norm = alpha / 255;
-        if (alpha === 0) {
-          data[i] = 0;
-          data[i + 1] = 0;
-          data[i + 2] = 0;
-        } else {
-          data[i] = data[i] / norm;
-          data[i + 1] = data[i + 1] / norm;
-          data[i + 2] = data[i + 2] / norm;
-        }
-      }
-
       const image = sharp(data, {
         raw: {
+          premultiplied: true,
           width: params.width * scale,
           height: params.height * scale,
           channels: 4,
