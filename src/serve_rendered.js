@@ -1,12 +1,24 @@
 'use strict';
 
+// SECTION START
+//
+// The order of the two imports below is important.
+// For an unknown reason, if the order is reversed, rendering can crash.
+// This happens on ARM:
+//  > terminate called after throwing an instance of 'std::runtime_error'
+//  > what():  Cannot read GLX extensions.
+import 'canvas';
+import '@maplibre/maplibre-gl-native';
+//
+// SECTION END
+
 import advancedPool from 'advanced-pool';
 import fs from 'node:fs';
 import path from 'path';
 import url from 'url';
 import util from 'util';
 import zlib from 'zlib';
-import sharp from 'sharp'; // sharp has to be required before node-canvas on linux but after it on windows. see https://github.com/lovell/sharp/issues/371
+import sharp from 'sharp';
 import clone from 'clone';
 import Color from 'color';
 import express from 'express';
