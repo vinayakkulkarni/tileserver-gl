@@ -1,6 +1,6 @@
 {
   "name": "tileserver-gl",
-  "version": "4.6.6",
+  "version": "4.7.0",
   "description": "Map tile server for JSON GL styles - vector and server side generated raster tiles",
   "main": "src/main.js",
   "bin": "src/main.js",
@@ -72,7 +72,7 @@
   ],
   "license": "BSD-2-Clause",
   "engines": {
-    "node": ">=14.20.0 <19"
+    "node": ">=18.17.0 <19"
   },
   "repository": {
     "url": "git+https://github.com/maptiler/tileserver-gl.git",
