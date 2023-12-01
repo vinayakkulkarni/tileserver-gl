@@ -38,7 +38,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies 🚀
-        run: npm ci --prefer-offline --no-audit --omit=dev
+        run: npm ci --prefer-offline --no-audit
 
       - name: Pull test data 📦
         run: >-
