@@ -17,7 +17,7 @@ Additional options (see :doc:`/usage`) can be passed to the TileServer GL by app
 npm
 ===
 
-npm is supported on the following platforms with `Native Dependencies <#native-dependencies>`_ installed.
+npm is supported on the following platforms with `Native Dependencies <#id1>`_ installed.
 
 - Operating systems:
 
