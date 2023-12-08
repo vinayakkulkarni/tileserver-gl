@@ -17,61 +17,48 @@ Additional options (see :doc:`/usage`) can be passed to the TileServer GL by app
 npm
 ===
 
-Just run ``npm install -g tileserver-gl``.
+npm is supported on the following platforms with `Native Dependencies <#native-dependencies>`_ installed.
 
+- Operating systems:
+
+  - Ubuntu 20.04 (x64/arm64)
+  - macOS 12 (x64/arm64)
+  - Windows (x64)
+
+- Node.js 18
+  
+Install globally from npmjs.
+------------------------------
+::
+
+  npm install -g tileserver-gl
+  tileserver-gl
+
+Install locally from source
+-------------------
+::
+
+  git clone https://github.com/maptiler/tileserver-gl.git
+  cd tileserver-gl
+  npm install
+  node .
 
 Native dependencies
 -------------------
 
-There are some native dependencies that you need to make sure are installed if you plan to run the TileServer GL natively without docker.
-The precise package names you need to install may differ on various platforms.
+Ubuntu 20.04 (x64/arm64)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- apt install build-essential pkg-config xvfb libglfw3-dev libuv1-dev libjpeg-turbo8 libicu66 libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev gir1.2-rsvg-2.0 librsvg2-2 librsvg2-common libcurl4-openssl-dev libpixman-1-dev libpixman-1-0
 
-These are required on Debian 11:
-  * ``libgles2-mesa``
-  * ``libegl1``
-  * ``xvfb``
-  * ``xauth``
-  * ``libopengl0``
-  * ``libcurl4``
-  * ``curl``
-  * ``libuv1-dev``
-  * ``libc6-dev``
-  * ``http://archive.ubuntu.com/ubuntu/pool/main/libj/libjpeg-turbo/libjpeg-turbo8_2.0.3-0ubuntu1_amd64.deb``
-  * ``http://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu66_66.1-2ubuntu2_amd64.deb``
+MacOS 12 (x64/arm64)
+~~~~~~~~~~~~~~~~~~~~~~
+- brew install pkg-config cairo libpng jpeg giflib
 
-These are required on Ubuntu 20.04:
-  * ``libcairo2-dev``
-  * ``libjpeg8-dev``
-  * ``libpango1.0-dev``
-  * ``libgif-dev``
-  * ``build-essential``
-  * ``g++``
-  * ``xvfb``
-  * ``libgles2-mesa-dev``
-  * ``libgbm-dev``
-  * ``libxxf86vm-dev``
+Windows (x64)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- `Microsoft Visual C++ 2015-2022 Redistributable <https://aka.ms/vs/17/release/vc_redist.x64.exe>`_
 
 ``tileserver-gl-light`` on npm
 ==============================
 
 Alternatively, you can use ``tileserver-gl-light`` package instead, which is pure javascript (does not have any native dependencies) and can run anywhere, but does not contain rasterization features.
-
-
-From source
-===========
-
-Make sure you have Node v18 (nvm install 18) and run::
-
-  npm install
-  node .
-
-
-On OSX
-======
-
-Make sure to have dependencies of canvas_ package installed::
-
-  brew install pkg-config cairo libpng jpeg giflib
-
-
-.. _canvas: https://www.npmjs.com/package/canvas
