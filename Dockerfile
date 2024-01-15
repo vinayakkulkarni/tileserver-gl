@@ -1,4 +1,4 @@
-FROM ubuntu:focal AS builder
+FROM ubuntu:jammy AS builder
 
 ENV NODE_ENV="production"
 
@@ -15,7 +15,7 @@ RUN set -ex; \
       libglfw3-dev \
       libuv1-dev \
       libjpeg-turbo8 \
-      libicu66 \
+      libicu70 \
       libcairo2-dev \
       libpango1.0-dev \
       libjpeg-dev \
@@ -35,7 +35,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN mkdir -p /etc/apt/keyrings; \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg; \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list; \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list; \
     apt-get -qq update; \
     apt-get install -y nodejs; \
     npm i -g npm@latest; \
@@ -58,7 +58,7 @@ RUN npm config set maxsockets 1; \
     npm ci --omit=dev; \
     chown -R root:root /usr/src/app;
 
-FROM ubuntu:focal AS final
+FROM ubuntu:jammy AS final
 
 ENV \
     NODE_ENV="production" \
@@ -78,7 +78,7 @@ RUN set -ex; \
       libglfw3 \
       libuv1 \
       libjpeg-turbo8 \
-      libicu66 \
+      libicu70 \
       libcairo2 \
       libgif7 \
       libopengl0 \
@@ -94,7 +94,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN mkdir -p /etc/apt/keyrings; \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg; \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list; \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list; \
     apt-get -qq update; \
     apt-get install -y nodejs; \
     npm i -g npm@latest; \
