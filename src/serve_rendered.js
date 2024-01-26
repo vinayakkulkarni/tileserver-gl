@@ -532,7 +532,7 @@ export const serve_rendered = {
     const app = express().disable('x-powered-by');
 
     app.get(
-      `/:id/:z(\\d+)/:x(\\d+)/:y(\\d+):scale(${scalePattern})?.:format([\\w]+)`,
+      `/:id/(:tileSize(256|512)/)?:z(\\d+)/:x(\\d+)/:y(\\d+):scale(${scalePattern})?.:format([\\w]+)`,
       (req, res, next) => {
         const item = repo[req.params.id];
         if (!item) {
@@ -552,6 +552,8 @@ export const serve_rendered = {
         const y = req.params.y | 0;
         const scale = getScale(req.params.scale);
         const format = req.params.format;
+        const tileSize = parseInt(req.params.tileSize, 10) || 256;
+
         if (
           z < 0 ||
           x < 0 ||
@@ -562,11 +564,10 @@ export const serve_rendered = {
         ) {
           return res.status(404).send('Out of bounds');
         }
-        const tileSize = 256;
         const tileCenter = mercator.ll(
           [
-            ((x + 0.5) / (1 << z)) * (256 << z),
-            ((y + 0.5) / (1 << z)) * (256 << z),
+            ((x + 0.5) / (1 << z)) * (tileSize << z),
+            ((y + 0.5) / (1 << z)) * (tileSize << z),
           ],
           z,
         );
@@ -821,16 +822,18 @@ export const serve_rendered = {
       );
     }
 
-    app.get('/:id.json', (req, res, next) => {
+    app.get('/(:tileSize(256|512)/)?:id.json', (req, res, next) => {
       const item = repo[req.params.id];
       if (!item) {
         return res.sendStatus(404);
       }
+      const tileSize = parseInt(req.params.tileSize, 10) || undefined;
       const info = clone(item.tileJSON);
       info.tiles = getTileUrls(
         req,
         info.tiles,
         `styles/${req.params.id}`,
+        tileSize,
         info.format,
         item.publicUrl,
       );

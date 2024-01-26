@@ -13,11 +13,12 @@ Styles
 
 Rendered tiles
 ==============
-* Rendered tiles are served at ``/styles/{id}/{z}/{x}/{y}[@2x].{format}``
+* Rendered tiles are served at ``/styles/{id}[/{tileSize}]/{z}/{x}/{y}[@2x].{format}``
 
-  * The optional ``@2x`` (or ``@3x``, ``@4x``) part can be used to render HiDPI (retina) tiles
+  * The optional ratio ``@2x`` (ex.  ``@2x``, ``@3x``, ``@4x``) part can be used to render HiDPI (retina) tiles
+  * The optional tile size ``/{tileSize}`` (ex. ``/256``, ``/512``). if omitted, tileSize defaults to 256.
   * Available formats: ``png``, ``jpg`` (``jpeg``), ``webp``
-  * TileJSON at ``/styles/{id}.json``
+  * TileJSON at ``/styles[/{tileSize}]/{id}.json``
 
 * The rendered tiles are not available in the ``tileserver-gl-light`` version.
 
@@ -91,13 +92,13 @@ Static images
 
 Source data
 ===========
-* Source data are served at ``/data/{mbtiles}/{z}/{x}/{y}.{format}``
+* Source data are served at ``/data/{id}/{z}/{x}/{y}.{format}``
 
   * Format depends on the source file (usually ``png`` or ``pbf``)
 
     * ``geojson`` is also available (useful for inspecting the tiles) in case the original format is ``pbf``
 
-  * TileJSON at ``/data/{mbtiles}.json``
+  * TileJSON at ``/data/{id}.json``
 
 TileJSON arrays
 ===============

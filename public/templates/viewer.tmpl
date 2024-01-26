@@ -77,11 +77,11 @@
          selectThreshold: 5
       }));
     } else {
-        var map = L.map('map', { zoomControl: false });
+        var map = L.map('map', { minZoom: 1, zoomControl: false });
         new L.Control.Zoom({ position: 'topright' }).addTo(map);
         
         var tile_urls = [], tile_attribution, tile_minzoom, tile_maxzoom;
-        var url = '{{public_url}}styles/{{id}}.json' + keyParam;
+        var url = '{{public_url}}styles/512/{{id}}.json' + keyParam;
         var req = new XMLHttpRequest();
         req.overrideMimeType("application/json");
         req.open('GET', url, true);
@@ -107,6 +107,7 @@
 
             for (tile_url in tile_urls) {
                 L.tileLayer(tile_urls[tile_url], {
+                    tileSize: 512,
                     minZoom: tile_minzoom,
                     maxZoom: tile_maxzoom,
                     attribution: tile_attribution

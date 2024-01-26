@@ -356,6 +356,7 @@ function start(opts) {
 
   const addTileJSONs = (arr, req, type) => {
     for (const id of Object.keys(serving[type])) {
+      const tileSize = 256;
       const info = clone(serving[type][id].tileJSON);
       let path = '';
       if (type === 'rendered') {
@@ -367,6 +368,7 @@ function start(opts) {
         req,
         info.tiles,
         path,
+        tileSize,
         info.format,
         opts.publicUrl,
         {
@@ -454,20 +456,19 @@ function start(opts) {
       if (style.serving_rendered) {
         const { center } = style.serving_rendered.tileJSON;
         if (center) {
-          style.viewer_hash = `#${center[2]}/${center[1].toFixed(
-            5,
-          )}/${center[0].toFixed(5)}`;
+          style.viewer_hash = `#${center[2]}/${center[1].toFixed(5)}/${center[0].toFixed(5)}`;
 
           const centerPx = mercator.px([center[0], center[1]], center[2]);
-          style.thumbnail = `${center[2]}/${Math.floor(
-            centerPx[0] / 256,
-          )}/${Math.floor(centerPx[1] / 256)}.png`;
+          // Set thumbnail default size to be 256px x 256px
+          style.thumbnail = `${center[2]}/${Math.floor(centerPx[0] / 256)}/${Math.floor(centerPx[1] / 256)}.png`;
         }
 
+        const tileSize = 512;
         style.xyz_link = getTileUrls(
           req,
           style.serving_rendered.tileJSON.tiles,
           `styles/${id}`,
+          tileSize,
           style.serving_rendered.tileJSON.format,
           opts.publicUrl,
         )[0];
@@ -493,22 +494,23 @@ function start(opts) {
       if (!data.is_vector) {
         if (center) {
           const centerPx = mercator.px([center[0], center[1]], center[2]);
-          data.thumbnail = `${center[2]}/${Math.floor(
-            centerPx[0] / 256,
-          )}/${Math.floor(centerPx[1] / 256)}.${tileJSON.format}`;
+          data.thumbnail = `${center[2]}/${Math.floor(centerPx[0] / 256)}/${Math.floor(centerPx[1] / 256)}.${tileJSON.format}`;
         }
-
-        data.xyz_link = getTileUrls(
-          req,
-          tileJSON.tiles,
-          `data/${id}`,
-          tileJSON.format,
-          opts.publicUrl,
-          {
-            pbf: options.pbfAlias,
-          },
-        )[0];
       }
+
+      const tileSize = undefined;
+      data.xyz_link = getTileUrls(
+        req,
+        tileJSON.tiles,
+        `data/${id}`,
+        tileSize,
+        tileJSON.format,
+        opts.publicUrl,
+        {
+          pbf: options.pbfAlias,
+        },
+      )[0];
+
       if (data.filesize) {
         let suffix = 'kB';
         let size = parseInt(tileJSON.filesize, 10) / 1024;

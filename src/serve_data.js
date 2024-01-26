@@ -173,11 +173,13 @@ export const serve_data = {
       if (!item) {
         return res.sendStatus(404);
       }
+      const tileSize = undefined;
       const info = clone(item.tileJSON);
       info.tiles = getTileUrls(
         req,
         info.tiles,
         `data/${req.params.id}`,
+        tileSize,
         info.format,
         item.publicUrl,
         {
