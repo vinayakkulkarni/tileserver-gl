@@ -413,7 +413,14 @@ const respondImage = (
     pool = item.map.renderersStatic[scale];
   }
   pool.acquire((err, renderer) => {
-    const mlglZ = Math.max(0, z - 1);
+    // For 512px tiles, use the actual maplibre-native zoom. For 256px tiles, use zoom - 1
+    let mlglZ;
+    if (width === 512) {
+      mlglZ = Math.max(0, z);
+    } else {
+      mlglZ = Math.max(0, z - 1);
+    }
+
     const params = {
       zoom: mlglZ,
       center: [lon, lat],
@@ -423,12 +430,14 @@ const respondImage = (
       height,
     };
 
-    if (z === 0) {
+    // HACK(Part 1) 256px tiles are a zoom level lower than maplibre-native default tiles. this hack allows tileserver-gl to support zoom 0 256px tiles, which would actually be zoom -1 in maplibre-native. Since zoom -1 isn't supported, a double sized zoom 0 tile is requested and resized in Part 2.
+    if (z === 0 && width === 256) {
       params.width *= 2;
       params.height *= 2;
     }
+    // END HACK(Part 1)
 
-    if (z > 2 && tileMargin > 0) {
+    if (z > 0 && tileMargin > 0) {
       params.width += tileMargin * 2;
       params.height += tileMargin * 2;
     }
@@ -449,9 +458,9 @@ const respondImage = (
         },
       });
 
-      if (z > 2 && tileMargin > 0) {
-        const [_, y] = mercator.px(params.center, z);
-        let yoffset = Math.max(
+      if (z > 0 && tileMargin > 0) {
+        const y = mercator.px(params.center, z)[1];
+        const yoffset = Math.max(
           Math.min(0, y - 128 - tileMargin),
           y + 128 + tileMargin - Math.pow(2, z + 8),
         );
@@ -463,10 +472,11 @@ const respondImage = (
         });
       }
 
-      if (z === 0) {
-        // HACK: when serving zoom 0, resize the 0 tile from 512 to 256
+      // HACK(Part 2) 256px tiles are a zoom level lower than maplibre-native default tiles. this hack allows tileserver-gl to support zoom 0 256px tiles, which would actually be zoom -1 in maplibre-native. Since zoom -1 isn't supported, a double sized zoom 0 tile is requested and resized here.
+      if (z === 0 && width === 256) {
         image.resize(width * scale, height * scale);
       }
+      // END HACK(Part 2)
 
       const composites = [];
       if (overlay) {
@@ -564,10 +574,11 @@ export const serve_rendered = {
         ) {
           return res.status(404).send('Out of bounds');
         }
+
         const tileCenter = mercator.ll(
           [
-            ((x + 0.5) / (1 << z)) * (tileSize << z),
-            ((y + 0.5) / (1 << z)) * (tileSize << z),
+            ((x + 0.5) / (1 << z)) * (256 << z),
+            ((y + 0.5) / (1 << z)) * (256 << z),
           ],
           z,
         );
