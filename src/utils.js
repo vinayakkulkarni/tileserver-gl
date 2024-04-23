@@ -114,9 +114,10 @@ export const getTileUrls = (
 
   const uris = [];
   if (!publicUrl) {
+    let xForwardedPath = `${req.get('X-Forwarded-Path') ? '/' + req.get('X-Forwarded-Path') : ''}`;
     for (const domain of domains) {
       uris.push(
-        `${req.protocol}://${domain}/${path}/${tileParams}.${format}${query}`,
+        `${req.protocol}://${domain}${xForwardedPath}/${path}/${tileParams}.${format}${query}`,
       );
     }
   } else {
