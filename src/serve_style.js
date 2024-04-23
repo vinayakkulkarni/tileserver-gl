@@ -7,24 +7,11 @@ import clone from 'clone';
 import express from 'express';
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 
-import { getPublicUrl } from './utils.js';
+import { fixUrl, allowedOptions } from './utils.js';
 
-const httpTester = /^(http(s)?:)?\/\//;
-
-const fixUrl = (req, url, publicUrl) => {
-  if (!url || typeof url !== 'string' || url.indexOf('local://') !== 0) {
-    return url;
-  }
-  const queryParams = [];
-  if (req.query.key) {
-    queryParams.unshift(`key=${encodeURIComponent(req.query.key)}`);
-  }
-  let query = '';
-  if (queryParams.length) {
-    query = `?${queryParams.join('&')}`;
-  }
-  return url.replace('local://', getPublicUrl(publicUrl, req)) + query;
-};
+const httpTester = /^https?:\/\//i;
+const allowedSpriteScales = allowedOptions(['', '@2x', '@3x']);
+const allowedSpriteFormats = allowedOptions(['png', 'json']);
 
 export const serve_style = {
   init: (options, repo) => {
@@ -42,7 +29,13 @@ export const serve_style = {
       }
       // mapbox-gl-js viewer cannot handle sprite urls with query
       if (styleJSON_.sprite) {
-        styleJSON_.sprite = fixUrl(req, styleJSON_.sprite, item.publicUrl);
+        if (Array.isArray(styleJSON_.sprite)) {
+          styleJSON_.sprite.forEach((spriteItem) => {
+            spriteItem.url = fixUrl(req, spriteItem.url, item.publicUrl);
+          });
+        } else {
+          styleJSON_.sprite = fixUrl(req, styleJSON_.sprite, item.publicUrl);
+        }
       }
       if (styleJSON_.glyphs) {
         styleJSON_.glyphs = fixUrl(req, styleJSON_.glyphs, item.publicUrl);
@@ -50,25 +43,39 @@ export const serve_style = {
       return res.send(styleJSON_);
     });
 
-    app.get('/:id/sprite:scale(@[23]x)?.:format([\\w]+)', (req, res, next) => {
-      const item = repo[req.params.id];
-      if (!item || !item.spritePath) {
-        return res.sendStatus(404);
-      }
-      const scale = req.params.scale;
-      const format = req.params.format;
-      const filename = `${item.spritePath + (scale || '')}.${format}`;
-      return fs.readFile(filename, (err, data) => {
-        if (err) {
-          console.log('Sprite load error:', filename);
-          return res.sendStatus(404);
+    app.get(
+      '/:id/sprite(/:spriteID)?:scale(@[23]x)?.:format([\\w]+)',
+      (req, res, next) => {
+        const { spriteID = 'default', id } = req.params;
+        const scale = allowedSpriteScales(req.params.scale) || '';
+        const format = allowedSpriteFormats(req.params.format);
+
+        if (format) {
+          const item = repo[id];
+          const sprite = item.spritePaths.find(
+            (sprite) => sprite.id === spriteID,
+          );
+          if (sprite) {
+            const filename = `${sprite.path + scale}.${format}`;
+            return fs.readFile(filename, (err, data) => {
+              if (err) {
+                console.log('Sprite load error:', filename);
+                return res.sendStatus(404);
+              } else {
+                if (format === 'json')
+                  res.header('Content-type', 'application/json');
+                if (format === 'png') res.header('Content-type', 'image/png');
+                return res.send(data);
+              }
+            });
+          } else {
+            return res.status(400).send('Bad Sprite ID or Scale');
+          }
         } else {
-          if (format === 'json') res.header('Content-type', 'application/json');
-          if (format === 'png') res.header('Content-type', 'image/png');
-          return res.send(data);
+          return res.status(400).send('Bad Sprite Format');
         }
-      });
-    });
+      },
+    );
 
     return app;
   },
@@ -135,27 +142,48 @@ export const serve_style = {
       }
     }
 
-    let spritePath;
-
-    if (styleJSON.sprite && !httpTester.test(styleJSON.sprite)) {
-      spritePath = path.join(
-        options.paths.sprites,
-        styleJSON.sprite
-          .replace('{style}', path.basename(styleFile, '.json'))
-          .replace(
-            '{styleJsonFolder}',
-            path.relative(options.paths.sprites, path.dirname(styleFile)),
-          ),
-      );
-      styleJSON.sprite = `local://styles/${id}/sprite`;
+    let spritePaths = [];
+    if (styleJSON.sprite) {
+      if (!Array.isArray(styleJSON.sprite)) {
+        if (!httpTester.test(styleJSON.sprite)) {
+          let spritePath = path.join(
+            options.paths.sprites,
+            styleJSON.sprite
+              .replace('{style}', path.basename(styleFile, '.json'))
+              .replace(
+                '{styleJsonFolder}',
+                path.relative(options.paths.sprites, path.dirname(styleFile)),
+              ),
+          );
+          styleJSON.sprite = `local://styles/${id}/sprite`;
+          spritePaths.push({ id: 'default', path: spritePath });
+        }
+      } else {
+        for (let spriteItem of styleJSON.sprite) {
+          if (!httpTester.test(spriteItem.url)) {
+            let spritePath = path.join(
+              options.paths.sprites,
+              spriteItem.url
+                .replace('{style}', path.basename(styleFile, '.json'))
+                .replace(
+                  '{styleJsonFolder}',
+                  path.relative(options.paths.sprites, path.dirname(styleFile)),
+                ),
+            );
+            spriteItem.url = `local://styles/${id}/sprite/` + spriteItem.id;
+            spritePaths.push({ id: spriteItem.id, path: spritePath });
+          }
+        }
+      }
     }
+
     if (styleJSON.glyphs && !httpTester.test(styleJSON.glyphs)) {
       styleJSON.glyphs = 'local://fonts/{fontstack}/{range}.pbf';
     }
 
     repo[id] = {
       styleJSON,
-      spritePath,
+      spritePaths,
       publicUrl,
       name: styleJSON.name,
     };

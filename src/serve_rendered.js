@@ -46,7 +46,7 @@ import { renderOverlay, renderWatermark, renderAttribution } from './render.js';
 const FLOAT_PATTERN = '[+-]?(?:\\d+|\\d+.?\\d+)';
 const PATH_PATTERN =
   /^((fill|stroke|width)\:[^\|]+\|)*(enc:.+|-?\d+(\.\d*)?,-?\d+(\.\d*)?(\|-?\d+(\.\d*)?,-?\d+(\.\d*)?)+)/;
-const httpTester = /^(http(s)?:)?\/\//;
+const httpTester = /^https?:\/\//i;
 
 const mercator = new SphericalMercator();
 const getScale = (scale) => (scale || '@1x').slice(1, 2) | 0;
@@ -1045,16 +1045,27 @@ export const serve_rendered = {
       return false;
     }
 
-    if (styleJSON.sprite && !httpTester.test(styleJSON.sprite)) {
-      styleJSON.sprite =
-        'sprites://' +
-        styleJSON.sprite
-          .replace('{style}', path.basename(styleFile, '.json'))
-          .replace(
-            '{styleJsonFolder}',
-            path.relative(options.paths.sprites, path.dirname(styleJSONPath)),
-          );
+    if (styleJSON.sprite) {
+      if (!Array.isArray(styleJSON.sprite)) {
+        styleJSON.sprite = [{ id: 'default', url: styleJSON.sprite }];
+      }
+      styleJSON.sprite.forEach((spriteItem) => {
+        if (!httpTester.test(spriteItem.url)) {
+          spriteItem.url =
+            'sprites://' +
+            spriteItem.url
+              .replace('{style}', path.basename(styleFile, '.json'))
+              .replace(
+                '{styleJsonFolder}',
+                path.relative(
+                  options.paths.sprites,
+                  path.dirname(styleJSONPath),
+                ),
+              );
+        }
+      });
     }
+
     if (styleJSON.glyphs && !httpTester.test(styleJSON.glyphs)) {
       styleJSON.glyphs = `fonts://${styleJSON.glyphs}`;
     }
